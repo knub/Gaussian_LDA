@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 usage() { echo "Usage: $0 [-n <num_iterations> -c <corpus file> -i <input vector file> -d  <num_dimensions> -k <num_topics> " 1>&2;
 	exit 1; }
 
