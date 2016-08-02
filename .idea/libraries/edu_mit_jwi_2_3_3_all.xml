@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="edu.mit.jwi_2.3.3_all">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external_libs/edu.mit.jwi_2.3.3_all/edu.mit.jwi_2.3.3_jdk.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external_libs/edu.mit.jwi_2.3.3_all/edu.mit.jwi_2.3.3_javadoc.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
