@@ -174,9 +174,9 @@ public class GaussianLDA {
 		}
 		//calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
 		double logDet = 0.0;
-		for(int l=0;l<Data.D;l++)				
+		for(int l = 0; l<Data.D; l++)
 			logDet = logDet + Math.log(oldLTriangularDecomp.get(l, l));	
-		logDet += Data.D*Math.log(scaleTdistrn)/(double)2;
+		logDet += Data.D *Math.log(scaleTdistrn)/(double)2;
 		
 		if(tableId < logDeterminants.size())				
 			logDeterminants.set(tableId, logDet);
@@ -205,9 +205,9 @@ public class GaussianLDA {
 			DenseMatrix64F initialCholesky = new DenseMatrix64F(CholSigma0);
 			//calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
 			double logDet = 0.0;			
-			for(int l=0;l<Data.D;l++)				
+			for(int l = 0; l<Data.D; l++)
 				logDet = logDet + Math.log(CholSigma0.get(l, l));	
-			logDet += Data.D*Math.log(scaleTdistrn)/(double)2;
+			logDet += Data.D *Math.log(scaleTdistrn)/(double)2;
 			logDeterminants.add(logDet);			
 			tableMeans.add(priorMean);			
 			tableCholeskyLTriangularMat.add(initialCholesky);
@@ -309,12 +309,12 @@ public class GaussianLDA {
 		CommonOps.scale(scaleTdistrn, tableCholeskyLTriangularMat.get(tableId), lTriangularChol);
 		TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.D); //now x_minus_mu has the solved value
 		//Now take xTx
-		DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1,Data.D);		
+		DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1,Data.D);
 		CommonOps.transpose(x_minus_mu, x_minus_mu_T);
 		DenseMatrix64F mul = new DenseMatrix64F(1,1);
 		CommonOps.mult(x_minus_mu_T,x_minus_mu, mul);
 		double val = mul.get(0, 0);
-		logprob = Gamma.logGamma((nu + Data.D)/2) - (Gamma.logGamma(nu/2) + Data.D/2 * (Math.log(nu)+Math.log(Math.PI))+logDeterminants.get(tableId) + (nu + Data.D)/2* Math.log(1+val/nu));
+		logprob = Gamma.logGamma((nu + Data.D)/2) - (Gamma.logGamma(nu/2) + Data.D /2 * (Math.log(nu)+Math.log(Math.PI))+logDeterminants.get(tableId) + (nu + Data.D)/2* Math.log(1+val/nu));
 		return logprob;
 	}
 	/**

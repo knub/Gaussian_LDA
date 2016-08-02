@@ -14,14 +14,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
@@ -48,13 +46,13 @@ public class Util {
 		assert x.numCols == 1;
 		assert x.numRows == Data.D;
 		
-		for(int k=0;k<Data.D;k++)
+		for(int k = 0; k<Data.D; k++)
 		{
 			double r = Math.sqrt(Math.pow(L.get(k, k),2) + Math.pow(x.get(k, 0),2));
 			double c = r/(double)L.get(k, k);
 			double s = x.get(k, 0)/L.get(k, k);
 			L.set(k, k, r);
-			for(int l=k+1;l<Data.D;l++)
+			for(int l = k+1; l<Data.D; l++)
 			{
 				double val = (L.get(l,k) + s*x.get(l, 0))/(double)c ;
 				L.set(l,k,val);
@@ -78,13 +76,13 @@ public class Util {
 		assert x.numCols == 1;
 		assert x.numRows == Data.D;
 		
-		for(int k=0;k<Data.D;k++)
+		for(int k = 0; k<Data.D; k++)
 		{
 			double r = Math.sqrt(L.get(k, k)*L.get(k, k) - x.get(k, 0)*x.get(k, 0));
 			double c = r/(double)L.get(k, k);
 			double s = x.get(k, 0)/L.get(k, k);
 			L.set(k, k, r);
-			for(int l=k+1;l<Data.D;l++)
+			for(int l = k+1; l<Data.D; l++)
 			{
 				double val = (L.get(l,k) - s*x.get(l, 0))/(double)c ;
 				L.set(l,k, val);
@@ -415,7 +413,7 @@ public class Util {
 		for(int i=0;i<K;i++)
 		{
 			double logDet = 0.0;
-			for(int l=0;l<Data.D;l++)				
+			for(int l = 0; l<Data.D; l++)
 				logDet = logDet + Math.log(scaledCholeskies.get(i).get(l, l));
 			logDeterminants.add(logDet);
 		}		
@@ -434,12 +432,12 @@ public class Util {
 				CommonOps.sub(x, tableMeans.get(tableId), x_minus_mu);
 				DenseMatrix64F lTriangularChol = scaledCholeskies.get(tableId);
 				TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.D); //now x_minus_mu has the solved value
-				DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1,Data.D);		
+				DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1,Data.D);
 				CommonOps.transpose(x_minus_mu, x_minus_mu_T);
 				DenseMatrix64F mul = new DenseMatrix64F(1,1);
 				CommonOps.mult(x_minus_mu_T,x_minus_mu, mul);
 				double val = mul.get(0, 0);
-				double logDensity = 0.5*(val + Data.D*Math.log(2*Math.PI)) + logDeterminants.get(tableId);
+				double logDensity = 0.5*(val + Data.D *Math.log(2*Math.PI)) + logDeterminants.get(tableId);
 				totalLogLL = totalLogLL - logDensity;
 				wordCounter++;
 				totalWordCounter++;

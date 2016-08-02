@@ -13,14 +13,12 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.commons.math3.special.Gamma;
-import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.DecompositionFactory;
 import org.ejml.factory.LinearSolverFactory;
 import org.ejml.interfaces.decomposition.CholeskyDecomposition;
 import org.ejml.interfaces.linsol.LinearSolver;
 import org.ejml.ops.CommonOps;
-import org.ejml.ops.RandomMatrices;
 
 import priors.NormalInverseWishart;
 import util.Util;
@@ -211,7 +209,7 @@ public class GaussianLDAWithoutCholesky {
 //		}
 //		//calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
 //		double logDet = 0.0;
-//		for(int l=0;l<Data.D;l++)				
+//		for(int l=0;l<Data.D;l++)
 //			logDet = logDet + Math.log(oldLTriangularDecomp.get(l, l));	
 //		logDet += Data.D*Math.log(scaleTdistrn)/(double)2;
 //		
@@ -258,7 +256,7 @@ public class GaussianLDAWithoutCholesky {
 //			//DenseMatrix64F initialCholesky = new DenseMatrix64F(CholSigma0);
 //			//calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
 //			double logDet = 0.0;			
-//			for(int l=0;l<Data.D;l++)				
+//			for(int l=0;l<Data.D;l++)
 //				logDet = logDet + Math.log(CholSigma0.get(l, l));	
 //			logDet += Data.D*Math.log(scaleTdistrn)/(double)2;
 //			logDeterminants.add(logDet);			
@@ -305,7 +303,7 @@ public class GaussianLDAWithoutCholesky {
 				//update the sumSquaredTableCustomers
 				DenseMatrix64F sumSquared = sumSquaredTableCustomers.get(tableId);
 				DenseMatrix64F custVectorTranspose = new DenseMatrix64F(1,Data.D);
-				DenseMatrix64F squaredVector = new DenseMatrix64F(Data.D,Data.D);	
+				DenseMatrix64F squaredVector = new DenseMatrix64F(Data.D,Data.D);
 				custVectorTranspose = CommonOps.transpose(dataVectors[i], custVectorTranspose);
 				//Multiply x_ix_i^T
 				CommonOps.mult(dataVectors[i],custVectorTranspose,squaredVector);
@@ -480,7 +478,7 @@ public class GaussianLDAWithoutCholesky {
 //		CommonOps.scale(scaleTdistrn, tableCholeskyLTriangularMat.get(tableId), lTriangularChol);
 //		TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.D); //now x_minus_mu has the solved value
 //		//Now take xTx
-//		DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1,Data.D);		
+//		DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1,Data.D);
 //		CommonOps.transpose(x_minus_mu, x_minus_mu_T);
 //		DenseMatrix64F mul = new DenseMatrix64F(1,1);
 //		CommonOps.mult(x_minus_mu_T,x_minus_mu, mul);
@@ -529,7 +527,7 @@ public class GaussianLDAWithoutCholesky {
 		//System.out.println("val = "+val);
 		//System.out.println("det = "+det);
 		double logprob = 0.0;		
-		logprob = Gamma.logGamma((nu + Data.D)/2) - (Gamma.logGamma(nu/2) + Data.D/2 * (Math.log(nu)+Math.log(Math.PI)) + 0.5 * Math.log(det) + (nu + Data.D)/2* Math.log(1+val/nu));		
+		logprob = Gamma.logGamma((nu + Data.D)/2) - (Gamma.logGamma(nu/2) + Data.D /2 * (Math.log(nu)+Math.log(Math.PI)) + 0.5 * Math.log(det) + (nu + Data.D)/2* Math.log(1+val/nu));
 		return logprob;
 	}
 	
@@ -573,7 +571,7 @@ public class GaussianLDAWithoutCholesky {
 				{
 					DenseMatrix64F custVectorTranspose = new DenseMatrix64F(1,Data.D);
 					custVectorTranspose = CommonOps.transpose(dataVectors[custId], custVectorTranspose);
-					DenseMatrix64F squaredVector = new DenseMatrix64F(Data.D,Data.D);	
+					DenseMatrix64F squaredVector = new DenseMatrix64F(Data.D,Data.D);
 					//Multiply x_ix_i^T
 					CommonOps.mult(dataVectors[custId],custVectorTranspose,squaredVector);
 					//remove custId from his old_table
@@ -589,7 +587,7 @@ public class GaussianLDAWithoutCholesky {
 					sumTableCustomers.set(oldTableId, newSumTable);
 					
 					//subtract x_ix_i^T								
-					DenseMatrix64F newSumSquaredTable = new DenseMatrix64F(Data.D,Data.D);					
+					DenseMatrix64F newSumSquaredTable = new DenseMatrix64F(Data.D,Data.D);
 					CommonOps.sub(oldSumSquaredTable, squaredVector, newSumSquaredTable);
 					sumSquaredTableCustomers.set(oldTableId, newSumSquaredTable);
 					
