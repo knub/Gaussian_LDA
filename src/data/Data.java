@@ -1,16 +1,6 @@
 package data;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +35,6 @@ public class Data {
 	
 	/**
 	 * 
-	 * @param args
 	 */
 	public static DenseMatrix64F readData() {
 		// TODO Auto-generated method stub
@@ -86,32 +75,66 @@ public class Data {
 		return null;
 	}
 	
-	public static ArrayList<ArrayList<Integer>> readCorpus(String inputCorpusName)
-	{
-		try
-		{
-			BufferedReader reader =
-			    new BufferedReader(
-			        new InputStreamReader(new FileInputStream(inputCorpusName), "UTF-8"));
-			ArrayList<ArrayList<Integer>> corpus = new ArrayList<ArrayList<Integer>>();
-			
-			String line = "";			
-			while((line = reader.readLine())!=null)
-			{
-				ArrayList<Integer> doc = new ArrayList<Integer>();
-				String[] words = line.split(" ");
-				for(String word:words)
-					doc.add(Integer.parseInt(word));
-				corpus.add(doc);				
+	public static ArrayList<ArrayList<Integer>> readCorpus(String inputCorpusName) throws IOException {
+		BufferedReader reader =
+				new BufferedReader(
+						new InputStreamReader(new FileInputStream(inputCorpusName), "UTF-8"));
+		ArrayList<ArrayList<Integer>> corpus = new ArrayList<ArrayList<Integer>>();
+		int lineNr = 0;
+		int docId = 0;
+		ArrayList<Integer> document = new ArrayList<>();
+
+
+		// for all documents
+		for (String line; (line = reader.readLine()) != null;) {
+			if (line.equals("##")) {
+				if (document.size() > 0) {
+					corpus.add(document);
+					document = new ArrayList<>();
+					docId += 1;
+					if (docId % 100000 == 0) {
+						System.out.println(docId);
+					}
+				}
+				continue;
 			}
-			reader.close();
-			return corpus;			
-		}catch(FileNotFoundException ex){
-			ex.printStackTrace();
-		}catch(IOException ex){
-			ex.printStackTrace();
+			try {
+				int wordId = Integer.parseInt(line.substring(0, 6));
+				document.add(wordId);
+			} catch (Exception e) {
+				System.out.println(line);
+				System.out.println("lineNr = " + lineNr);
+				System.out.println("line = <" + line + ">");
+				throw e;
+			}
+			lineNr += 1;
 		}
-		return null;
+		return corpus;
+
+//		try
+//		{
+//			BufferedReader reader =
+//			    new BufferedReader(
+//			        new InputStreamReader(new FileInputStream(inputCorpusName), "UTF-8"));
+//			ArrayList<ArrayList<Integer>> corpus = new ArrayList<ArrayList<Integer>>();
+//
+//			String line = "";
+//			while((line = reader.readLine())!=null)
+//			{
+//				ArrayList<Integer> doc = new ArrayList<Integer>();
+//				String[] words = line.split(" ");
+//				for(String word:words)
+//					doc.add(Integer.parseInt(word));
+//				corpus.add(doc);
+//			}
+//			reader.close();
+//			return corpus;
+//		}catch(FileNotFoundException ex){
+//			ex.printStackTrace();
+//		}catch(IOException ex){
+//			ex.printStackTrace();
+//		}
+//		return null;
 	}
 	
 	
