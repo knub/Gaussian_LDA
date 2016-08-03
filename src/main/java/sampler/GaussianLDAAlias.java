@@ -12,10 +12,7 @@ import util.FreeMemory;
 import util.Util;
 import util.VoseAlias;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -333,7 +330,6 @@ public class GaussianLDAAlias implements Runnable {
             long last1000Time = System.currentTimeMillis();
             for (int d = 0; d < 100; d++) {
                 if (d % OUTPUT_EVERY == 0) {
-                    //runLogger.write("Done for document "+d+"\n");
                     System.out.println(String.format("Current document: %d/%d, last %d: %d s, memory: %d MB",
                             d, corpus.size(), OUTPUT_EVERY,
                             (System.currentTimeMillis() - last1000Time) / 1000,
@@ -430,7 +426,9 @@ public class GaussianLDAAlias implements Runnable {
             System.out.println("Avg log-likelihood: " + avgLL);
         }
         done = true;
+        System.out.println("Waiting for joining thread");
         t1.join();
+        System.out.println("Thread finished");
         out.close();
     }
 
@@ -513,35 +511,39 @@ public class GaussianLDAAlias implements Runnable {
 
     @Override
     public void run() {
-
-        VoseAlias temp = new VoseAlias();
-        temp.init(numTopics);
-        //temp.init_temp();
-        do {
-            for (int w = 0; w < Data.numVectors; ++w) {
-                double max = Double.NEGATIVE_INFINITY;
-                for (int k = 0; k < numTopics; k++) {
-                    double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
-                    //posterior.add(logLikelihood);
-                    temp.w[k] = logLikelihood;
-                    if (logLikelihood > max)
-                        max = logLikelihood;
+        try {
+            PrintWriter pw = new PrintWriter(dirName + "extra-thread.txt");
+            VoseAlias temp = new VoseAlias();
+            temp.init(numTopics);
+            //temp.init_temp();
+            do {
+                for (int w = 0; w < Data.numVectors; ++w) {
+                    pw.println(new Date().toString() + w);
+                    double max = Double.NEGATIVE_INFINITY;
+                    for (int k = 0; k < numTopics; k++) {
+                        double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
+                        //posterior.add(logLikelihood);
+                        temp.w[k] = logLikelihood;
+                        if (logLikelihood > max)
+                            max = logLikelihood;
+                    }
+                    //to prevent overflow, subtract by log(p_max). This is because when we will be normalizing after exponentiating, each entry will be exp(log p_i - log p_max )/\Sigma_i exp(log p_i - log p_max)
+                    //the log p_max cancels put and prevents overflow in the exponentiating phase.
+                    temp.wsum = 0.0;
+                    for (int k = 0; k < numTopics; k++) {
+                        double p = temp.w[k];
+                        p = p - max;
+                        double expP = Math.exp(p);
+                        temp.wsum += expP;
+                        temp.w[k] = expP;
+                    }
+                    temp.generateTable();
+                    q[w].copy(temp);
                 }
-                //to prevent overflow, subtract by log(p_max). This is because when we will be normalizing after exponentiating, each entry will be exp(log p_i - log p_max )/\Sigma_i exp(log p_i - log p_max)
-                //the log p_max cancels put and prevents overflow in the exponentiating phase.
-                temp.wsum = 0.0;
-                for (int k = 0; k < numTopics; k++) {
-                    double p = temp.w[k];
-                    p = p - max;
-                    double expP = Math.exp(p);
-                    temp.wsum += expP;
-                    temp.w[k] = expP;
-                }
-                temp.generateTable();
-                q[w].copy(temp);
-            }
-        } while (!done);
-
+            } while (!done);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
 
