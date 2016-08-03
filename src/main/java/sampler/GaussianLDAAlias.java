@@ -321,22 +321,24 @@ public class GaussianLDAAlias implements Runnable {
      * @throws IOException
      */
     private static void sample() throws IOException, InterruptedException {
+        int OUTPUT_EVERY = 10;
         BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
-        System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
+        System.out.println("Free Memory: " + FreeMemory.get(false, 0) + " MB");
         for (int currentIteration = 0; currentIteration < numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
             long last1000Time = System.currentTimeMillis();
             for (int d = 0; d < corpus.size(); d++) {
-                if (d % 10 == 0) {
+                if (d % OUTPUT_EVERY == 0) {
                     //runLogger.write("Done for document "+d+"\n");
-                    System.out.println(String.format("Current document: %d/%d, last 1000: %d s",
-                            d, corpus.size(), (System.currentTimeMillis() - last1000Time) / 1000));
+                    System.out.println(String.format("Current document: %d/%d, last %d: %d s, memory: %d MB",
+                            d, corpus.size(), OUTPUT_EVERY,
+                            (System.currentTimeMillis() - last1000Time) / 1000,
+                            FreeMemory.get(false, 0)));
                     last1000Time = System.currentTimeMillis();
-                    System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
                 }
                 ArrayList<Integer> document = corpus.get(d);
                 int wordCounter = 0;
@@ -441,7 +443,7 @@ public class GaussianLDAAlias implements Runnable {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
+        System.out.println("Free Memory: " + FreeMemory.get(false, 0) + " MB");
         long startTime = System.currentTimeMillis();
         //Get the input file given as input
         Data.inputFileName = args[0];
@@ -495,7 +497,7 @@ public class GaussianLDAAlias implements Runnable {
         System.out.println("Initializing ..");
         initialize();
         System.out.println("Gibbs sampler will run for " + numIterations + " iterations");
-        System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
+        System.out.println("Free Memory: " + FreeMemory.get(false, 0) + " MB");
         /******sample*********/
         sample();
         long stopTime = System.currentTimeMillis();
