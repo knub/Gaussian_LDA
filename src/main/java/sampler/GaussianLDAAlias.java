@@ -49,19 +49,19 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * Number of tables in the current iteration
      */
-    private static int K;
+    private static int numTopics;
 
     /**
      * Number of documents
      */
-    private static int N;
+    private static int numDocuments;
     /**
      * In the current iteration, map of table_id's to number of customers. ****Table id starts from 0.****
      */
     private static HashMap<Integer, Integer> tableCounts = new HashMap<>();
 
     /**
-     * tableCountstableCountsPerDoc is a K X N array. tableCounts[i][j] represents how many words of document j are present in topic i.
+     * tableCountstableCountsPerDoc is a numTopics X numDocuments array. tableCounts[i][j] represents how many words of document j are present in topic i.
      */
     private static int[][] tableCountsPerDoc;
     /**
@@ -70,13 +70,13 @@ public class GaussianLDAAlias implements Runnable {
     //private static HashMap<Integer,Set<Integer>> tableMembers = new HashMap<Integer,Set<Integer>>();
 
     /**
-     * Stores the table (topic) assignment of each customer in each iteration. tableAssignments[i][j] gives the table assignment of customer j of the ith document.
+     * Stores the table (topic) assignment of each customer in each iteration. topicAssignments[i][j] gives the table assignment of customer j of the ith document.
      */
-    private static ArrayList<ArrayList<Integer>> tableAssignments;
+    private static ArrayList<ArrayList<Integer>> topicAssignments;
 
 
     /**
-     * The following 4 parameters are arraylist and not maps because, if they are K tables, they are continuously numbered from 0 to K-1 and hence we can directly index them.
+     * The following 4 parameters are arraylist and not maps because, if they are numTopics tables, they are continuously numbered from 0 to numTopics-1 and hence we can directly index them.
      */
     /**
      * mean vector associated with each table in the current iteration. This is the bayesian mean (i.e has the prior part too)
@@ -135,8 +135,8 @@ public class GaussianLDAAlias implements Runnable {
         if (isRemoved) {
             /**
              * Now use the rank1 downdate to calculate the cholesky decomposition of the updated covariance matrix
-             * the update equaltion is \Sigma_(N+1) =\Sigma_(N) - (k_0 + N+1)/(k_0 + N)(X_{n} - \mu_{n-1})(X_{n} - \mu_{n-1})^T
-             * therefore x = sqrt((k_0 + N - 1)/(k_0 + N)) (X_{n} - \mu_{n})
+             * the update equaltion is \Sigma_(numDocuments+1) =\Sigma_(numDocuments) - (k_0 + numDocuments+1)/(k_0 + numDocuments)(X_{n} - \mu_{n-1})(X_{n} - \mu_{n-1})^T
+             * therefore x = sqrt((k_0 + numDocuments - 1)/(k_0 + numDocuments)) (X_{n} - \mu_{n})
              * Note here \mu_n will be the mean before updating. After updating sigma_n, we will update \mu_n.
              */
             DenseMatrix64F x = new DenseMatrix64F(Data.D, 1);
@@ -184,7 +184,7 @@ public class GaussianLDAAlias implements Runnable {
     }
 
     /**
-     * Initialize the gibbs sampler state. I start with log N tables and randomly initialize customers to those tables.
+     * Initialize the gibbs sampler state. I start with log numDocuments tables and randomly initialize customers to those tables.
      *
      * @throws IOException
      */
@@ -196,7 +196,7 @@ public class GaussianLDAAlias implements Runnable {
         }
         //storing zeros in sumTableCustomers and later will keep on adding each customer. Also initialize tableInverseCovariances and determinants
         double scaleTdistrn = (prior.k_0 + 1) / (prior.k_0 * (prior.nu_0 - Data.D + 1));
-        for (int i = 0; i < K; i++) {
+        for (int i = 0; i < numTopics; i++) {
             DenseMatrix64F priorMean = new DenseMatrix64F(prior.mu_0);
             DenseMatrix64F initialCholesky = new DenseMatrix64F(CholSigma0);
             //calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
@@ -210,15 +210,15 @@ public class GaussianLDAAlias implements Runnable {
         }
         //randomly assign customers to tables.
         Random gen = new Random();
-        for (int d = 0; d < N; d++) //for each document
+        for (int d = 0; d < numDocuments; d++) //for each document
         {
             ArrayList<Integer> doc = corpus.get(d);
             int wordCounter = 0;
-            tableAssignments.add(new ArrayList<>());
+            topicAssignments.add(new ArrayList<>());
             for (int i : doc) //for each word in the document.
             {
-                int tableId = gen.nextInt(K);
-                tableAssignments.get(d).add(tableId);
+                int tableId = gen.nextInt(numTopics);
+                topicAssignments.get(d).add(tableId);
                 if (tableCounts.containsKey(tableId)) {
                     int prevCount = tableCounts.get(tableId);
                     tableCounts.put(tableId, prevCount + 1);
@@ -234,7 +234,7 @@ public class GaussianLDAAlias implements Runnable {
 //		table params.
 //		//Now some tables might be empty because of random initialization. But since we need continuous table indexes therefore I am going to make them continuous
 //		ArrayList<Integer> emptyTables = new ArrayList<Integer>();
-//		for(int i=0;i<K;i++)
+//		for(int i=0;i<numTopics;i++)
 //			if(!tableCounts.containsKey(i))
 //				emptyTables.add(i);
 //		if(emptyTables.size()>0) //empty tables found
@@ -242,33 +242,33 @@ public class GaussianLDAAlias implements Runnable {
 //			int start = 0, end = emptyTables.size()-1;
 //			while(start <= end)
 //			{
-//				if(tableCounts.containsKey(K-1))//shift the contents of the last table to the first table which is non empty
+//				if(tableCounts.containsKey(numTopics-1))//shift the contents of the last table to the first table which is non empty
 //				{
 //					int targetTableId = emptyTables.get(start);
-//					tableCounts.put(targetTableId, tableCounts.get(K-1));
+//					tableCounts.put(targetTableId, tableCounts.get(numTopics-1));
 //
-//					//This is going to be expensive, go over the tableAssignments datastructure and change the asssignment of those who were assigned to K-1 to targetTableId
-//					for(ArrayList<Integer> doc:tableAssignments)
+//					//This is going to be expensive, go over the topicAssignments datastructure and change the asssignment of those who were assigned to numTopics-1 to targetTableId
+//					for(ArrayList<Integer> doc:topicAssignments)
 //					{
 //						int counter = 0;
 //						for(int tableAssignment:doc)
 //						{
-//							if(tableAssignment == K-1)
+//							if(tableAssignment == numTopics-1)
 //								doc.set(counter, targetTableId);
 //							counter++;
 //						}
 //					}
-//					tableCounts.remove(K-1);
+//					tableCounts.remove(numTopics-1);
 //					start++; //incrementing start to point at the next table
 //				}
 //				else
 //					end--; //this condition means that the last of the remaining table is empty, hence safely ignoring
 //
-//				K = K - 1;
+//				numTopics = numTopics - 1;
 //			}
 //		}
         //double check again
-        for (int i = 0; i < K; i++)
+        for (int i = 0; i < numTopics; i++)
             if (!tableCounts.containsKey(i)) {
                 System.out.println("Still some tables are empty....exiting!");
                 System.exit(1);
@@ -276,7 +276,7 @@ public class GaussianLDAAlias implements Runnable {
 
         System.out.println("Initialization complete");
         //calculate initial avg ll
-        double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
+        double avgLL = Util.calculateAvgLL(corpus, topicAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
         System.out.println("Average ll at the begining " + avgLL);
     }
 
@@ -342,8 +342,8 @@ public class GaussianLDAAlias implements Runnable {
                 int wordCounter = 0;
                 for (int custId : document) {
                     //remove custId from his old_table
-                    int oldTableId = tableAssignments.get(d).get(wordCounter);
-                    tableAssignments.get(d).set(wordCounter, -1);
+                    int oldTableId = topicAssignments.get(d).get(wordCounter);
+                    topicAssignments.get(d).set(wordCounter, -1);
                     int oldCount = tableCounts.get(oldTableId);
                     tableCounts.put(oldTableId, oldCount - 1); //decrement count
                     tableCountsPerDoc[oldTableId][d]--; //topic 'oldTableId' has one member less.
@@ -355,7 +355,7 @@ public class GaussianLDAAlias implements Runnable {
                     Double max = Double.NEGATIVE_INFINITY;
                     double pSum = 0;
                     //go over each table
-                    for (int k = 0; k < K; k++) {
+                    for (int k = 0; k < numTopics; k++) {
                         if (tableCountsPerDoc[k][d] > 0) {
                             //Now calculate the likelihood
                             //double count = tableCountsPerDoc[k][d]+alpha;//here count is the number of words of the same doc which are sitting in the same topic.
@@ -412,7 +412,7 @@ public class GaussianLDAAlias implements Runnable {
                                 oldTableId = newTableId;
                         }
                     }
-                    tableAssignments.get(d).set(wordCounter, newTableId);
+                    topicAssignments.get(d).set(wordCounter, newTableId);
                     tableCounts.put(newTableId, tableCounts.get(newTableId) + 1);
                     tableCountsPerDoc[newTableId][d]++;
                     updateTableParams(newTableId, custId, false);
@@ -424,7 +424,7 @@ public class GaussianLDAAlias implements Runnable {
             System.out.println(String.format("Finished iteration %d in %d s", currentIteration, elapsedTime));
 
             //calculate perplexity
-            double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
+            double avgLL = Util.calculateAvgLL(corpus, topicAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
             System.out.println("Avg log-likelihood: " + avgLL);
         }
         done = true;
@@ -450,7 +450,7 @@ public class GaussianLDAAlias implements Runnable {
         numIterations = Integer.parseInt(args[2]);
         Data.D = D;
         //read the initial number of clusters for k-means
-        K = Integer.parseInt(args[3]);
+        numTopics = Integer.parseInt(args[3]);
         //read the vocab and the cluster file
         dirName = args[4];
         //Read data vectors into matrix from file
@@ -462,8 +462,8 @@ public class GaussianLDAAlias implements Runnable {
         String inputCorpusFile = args[5];
         corpus = Data.readCorpus(inputCorpusFile);
         System.out.println("Corpus file read");
-        N = corpus.size();
-        System.out.println("Total number of documents are " + N);
+        numDocuments = corpus.size();
+        System.out.println("Total number of documents are " + numDocuments);
         //initialize the prior
         prior = new NormalInverseWishart();
         prior.mu_0 = Util.getSampleMean(dataVectors);
@@ -475,20 +475,20 @@ public class GaussianLDAAlias implements Runnable {
         prior.k_0 = 0.1;
         CholSigma0 = new DenseMatrix64F(Data.D, Data.D);
         CommonOps.addEquals(CholSigma0, prior.sigma_0);
-        alpha = 1 / (double) K;
+        alpha = 1 / (double) numTopics;
         if (!decomposer.decompose(CholSigma0))//cholesky decomp
         {
             System.out.println("Matrix couldnt be Cholesky decomposed");
             System.exit(1);
         }
         //Now initialize each datapoint (customer)
-        tableAssignments = new ArrayList<>();
-        tableCountsPerDoc = new int[K][N];
+        topicAssignments = new ArrayList<>();
+        tableCountsPerDoc = new int[numTopics][numDocuments];
 
         q = new VoseAlias[Data.numVectors];
         for (int w = 0; w < Data.numVectors; w++) {
             q[w] = new VoseAlias();
-            q[w].init(K);
+            q[w].init(numTopics);
         }
 
         /**************** Initialize ***********/
@@ -502,10 +502,10 @@ public class GaussianLDAAlias implements Runnable {
         double elapsedTime = (stopTime - startTime) / (double) 1000;
         System.out.println("Time taken " + elapsedTime);
         System.out.println("Printing the distributions");
-        Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, K, dirName);
-        Util.printDocumentTopicDistribution(tableCountsPerDoc, N, K, dirName, alpha);
-        Util.printTableAssignments(tableAssignments, dirName);
-        Util.printNumCustomersPerTopic(tableCountsPerDoc, dirName, K, N);
+        Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName);
+        Util.printDocumentTopicDistribution(tableCountsPerDoc, numDocuments, numTopics, dirName, alpha);
+        Util.printTopicAssignments(topicAssignments, dirName);
+        Util.printNumCustomersPerTopic(tableCountsPerDoc, dirName, numTopics, numDocuments);
         System.out.println("Done");
     }
 
@@ -513,12 +513,12 @@ public class GaussianLDAAlias implements Runnable {
     public void run() {
 
         VoseAlias temp = new VoseAlias();
-        temp.init(K);
+        temp.init(numTopics);
         //temp.init_temp();
         do {
             for (int w = 0; w < Data.numVectors; ++w) {
                 double max = Double.NEGATIVE_INFINITY;
-                for (int k = 0; k < K; k++) {
+                for (int k = 0; k < numTopics; k++) {
                     double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
                     //posterior.add(logLikelihood);
                     temp.w[k] = logLikelihood;
@@ -528,7 +528,7 @@ public class GaussianLDAAlias implements Runnable {
                 //to prevent overflow, subtract by log(p_max). This is because when we will be normalizing after exponentiating, each entry will be exp(log p_i - log p_max )/\Sigma_i exp(log p_i - log p_max)
                 //the log p_max cancels put and prevents overflow in the exponentiating phase.
                 temp.wsum = 0.0;
-                for (int k = 0; k < K; k++) {
+                for (int k = 0; k < numTopics; k++) {
                     double p = temp.w[k];
                     p = p - max;
                     double expP = Math.exp(p);
@@ -546,11 +546,11 @@ public class GaussianLDAAlias implements Runnable {
     public static void initRun() {
         System.out.println("Initial run started at " + new Date());
         VoseAlias temp = new VoseAlias();
-        temp.init(K);
+        temp.init(numTopics);
         //temp.init_temp();
         for (int w = 0; w < Data.numVectors; ++w) {
             double max = Double.NEGATIVE_INFINITY;
-            for (int k = 0; k < K; k++) {
+            for (int k = 0; k < numTopics; k++) {
                 double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
                 //posterior.add(logLikelihood);
                 temp.w[k] = logLikelihood;
@@ -560,7 +560,7 @@ public class GaussianLDAAlias implements Runnable {
             //to prevent overflow, subtract by log(p_max). This is because when we will be normalizing after exponentiating, each entry will be exp(log p_i - log p_max )/\Sigma_i exp(log p_i - log p_max)
             //the log p_max cancels put and prevents overflow in the exponentiating phase.
             temp.wsum = 0.0;
-            for (int k = 0; k < K; k++) {
+            for (int k = 0; k < numTopics; k++) {
                 double p = temp.w[k];
                 p = p - max;
                 double expP = Math.exp(p);

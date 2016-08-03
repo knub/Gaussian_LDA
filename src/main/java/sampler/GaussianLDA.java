@@ -512,7 +512,7 @@ public class GaussianLDA {
         System.out.println("Printing the distributions");
         Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, K, dirName);
         Util.printDocumentTopicDistribution(tableCountsPerDoc, N, K, dirName, alpha);
-        Util.printTableAssignments(tableAssignments, dirName);
+        Util.printTopicAssignments(tableAssignments, dirName);
         Util.printNumCustomersPerTopic(tableCountsPerDoc, dirName, K, N);
         System.out.println("Done");
     }

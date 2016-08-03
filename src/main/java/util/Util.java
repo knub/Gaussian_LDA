@@ -234,20 +234,16 @@ public class Util {
         }
     }
 
-    public static void printNumCustomersPerTopic(int[][] tableCountsPerDoc, String dirName, int K, int N) {
-        try {
-            BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "topic_counts" + ".txt", true), "UTF-8"));
-            for (int k = 0; k < K; k++) {
-                int n_k = 0;
-                for (int n = 0; n < N; n++)
-                    n_k = n_k + tableCountsPerDoc[k][n];
-                output.write(n_k + "\n");
-            }
-            output.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static void printNumCustomersPerTopic(int[][] tableCountsPerDoc, String dirName, int numTopics, int numDocuments) throws IOException {
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "topic_counts" + ".txt", true), "UTF-8"));
+        for (int k = 0; k < numTopics; k++) {
+            int n_k = 0;
+            for (int n = 0; n < numDocuments; n++)
+                n_k = n_k + tableCountsPerDoc[k][n];
+            output.write(n_k + "\n");
         }
+        output.close();
     }
 
     public static void printDocumentTopicDistribution(int[][] tableCountsPerDoc, int numDocs, int K, String dirName, double alpha) {
@@ -270,19 +266,15 @@ public class Util {
         }
     }
 
-    public static void printTableAssignments(ArrayList<ArrayList<Integer>> tableAssignments, String dirName) {
-        try {
-            BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "table_assignments" + ".txt", true), "UTF-8"));
-            for (ArrayList<Integer> eachDoc : tableAssignments) {
-                for (int assignment : eachDoc)
-                    output.write(assignment + " ");
-                output.write("\n");
-            }
-            output.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static void printTopicAssignments(ArrayList<ArrayList<Integer>> tableAssignments, String dirName) throws IOException {
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "table_assignments" + ".txt", true), "UTF-8"));
+        for (ArrayList<Integer> eachDoc : tableAssignments) {
+            for (int assignment : eachDoc)
+                output.write(assignment + " ");
+            output.write("\n");
         }
+        output.close();
     }
 
     /**
