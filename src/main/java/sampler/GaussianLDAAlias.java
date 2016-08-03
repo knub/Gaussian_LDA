@@ -319,8 +319,6 @@ public class GaussianLDAAlias implements Runnable {
      */
     private static void sample() throws IOException, InterruptedException {
         int OUTPUT_EVERY = 10;
-        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
@@ -429,15 +427,6 @@ public class GaussianLDAAlias implements Runnable {
         System.out.println("Waiting for joining thread");
         t1.join();
         System.out.println("Thread finished");
-        out.close();
-    }
-
-    public static ArrayList<DenseMatrix64F> getTableMeans() {
-        return tableMeans;
-    }
-
-    public static ArrayList<DenseMatrix64F> getTableCholeskyLTriangularMat() {
-        return tableCholeskyLTriangularMat;
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -499,8 +488,8 @@ public class GaussianLDAAlias implements Runnable {
         /******sample*********/
         sample();
         long stopTime = System.currentTimeMillis();
-        double elapsedTime = (stopTime - startTime) / (double) 1000;
-        System.out.println("Time taken " + elapsedTime);
+        long elapsedTime = (stopTime - startTime) / 1000;
+        System.out.println(String.format("Done in %d s, %d min", elapsedTime, elapsedTime / 60));
         System.out.println("Printing the distributions");
         Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName);
         Util.printDocumentTopicDistribution(tableCountsPerDoc, numDocuments, numTopics, dirName, alpha);
