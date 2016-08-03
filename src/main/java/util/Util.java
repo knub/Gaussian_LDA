@@ -203,34 +203,29 @@ public class Util {
     /**
      * Prints the multivariate distributions (the word|topic distribution)
      */
-    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName) {
-        try {
-            for (int i = 0; i < K; i++) {
-                BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                        new FileOutputStream(dirName + i + ".txt", true), "UTF-8"));
-                //first write the mean
-                for (int l = 0; l < tableMeans.get(i).numRows; l++)
-                    output.write(tableMeans.get(i).get(l, 0) + " ");
+    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName) throws IOException {
+        for (int i = 0; i < K; i++) {
+            BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(dirName + i + ".txt", true), "UTF-8"));
+            //first write the mean
+            for (int l = 0; l < tableMeans.get(i).numRows; l++)
+                output.write(tableMeans.get(i).get(l, 0) + " ");
+            output.write("\n");
+            //write the covariance matrix
+            //first recover it from the cholesky
+            DenseMatrix64F chol = tableCholeskyLTriangularMat.get(i);
+            DenseMatrix64F cholT = new DenseMatrix64F(chol.numRows, chol.numCols);
+            CommonOps.transpose(chol, cholT);
+            DenseMatrix64F covar = new DenseMatrix64F(chol.numRows, chol.numCols);
+            CommonOps.mult(chol, cholT, covar);
+
+            //write the covar now
+            for (int r = 0; r < covar.numRows; r++) {
+                for (int c = 0; c < covar.numCols; c++)
+                    output.write(covar.get(r, c) + " ");
                 output.write("\n");
-                //write the covariance matrix
-                //first recover it from the cholesky
-                DenseMatrix64F chol = tableCholeskyLTriangularMat.get(i);
-                //DenseMatrix64F cholT = new DenseMatrix64F(chol.numRows,chol.numCols);
-                //CommonOps.transpose(chol, cholT);
-                //DenseMatrix64F covar = new DenseMatrix64F(chol.numRows,chol.numCols);
-                //CommonOps.mult(chol,cholT,covar);
-
-                //write the covar now
-                for (int r = 0; r < chol.numRows; r++) {
-                    for (int c = 0; c < chol.numCols; c++)
-                        output.write(chol.get(r, c) + " ");
-                    output.write("\n");
-                }
-                output.close();
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            output.close();
         }
     }
 
