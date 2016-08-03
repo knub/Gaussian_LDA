@@ -8,6 +8,7 @@ import org.ejml.factory.DecompositionFactory;
 import org.ejml.interfaces.decomposition.CholeskyDecomposition;
 import org.ejml.ops.CommonOps;
 import priors.NormalInverseWishart;
+import util.FreeMemory;
 import util.Util;
 import util.VoseAlias;
 
@@ -16,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -269,15 +271,12 @@ public class GaussianLDAAlias implements Runnable {
         for (int i = 0; i < K; i++)
             if (!tableCounts.containsKey(i)) {
                 System.out.println("Still some tables are empty....exiting!");
-                System.out.println("Still some tables are empty....exiting!");
                 System.exit(1);
             }
 
         System.out.println("Initialization complete");
-        System.out.println("Initialization complete");
         //calculate initial avg ll
         double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
-        System.out.println("Average ll at the begining " + avgLL);
         System.out.println("Average ll at the begining " + avgLL);
     }
 
@@ -327,10 +326,18 @@ public class GaussianLDAAlias implements Runnable {
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
+        System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
         for (int currentIteration = 0; currentIteration < numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
             long last1000Time = System.currentTimeMillis();
             for (int d = 0; d < corpus.size(); d++) {
+                if (d % 10 == 0) {
+                    //runLogger.write("Done for document "+d+"\n");
+                    System.out.println(String.format("Current document: %d/%d, last 1000: %d s",
+                            d, corpus.size(), (System.currentTimeMillis() - last1000Time) / 1000));
+                    last1000Time = System.currentTimeMillis();
+                    System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
+                }
                 ArrayList<Integer> document = corpus.get(d);
                 int wordCounter = 0;
                 for (int custId : document) {
@@ -411,12 +418,6 @@ public class GaussianLDAAlias implements Runnable {
                     updateTableParams(newTableId, custId, false);
                     wordCounter++;
                 }
-                if (d % 10 == 0) {
-                    //runLogger.write("Done for document "+d+"\n");
-                    System.out.println(String.format("Current document: %d/%d, last 1000: %d s",
-                            d, corpus.size(), (System.currentTimeMillis() - last1000Time) / 1000));
-                    last1000Time = System.currentTimeMillis();
-                }
             }
             long stopTime = System.currentTimeMillis();
             long elapsedTime = (stopTime - startTime) / 1000;
@@ -440,6 +441,7 @@ public class GaussianLDAAlias implements Runnable {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
         long startTime = System.currentTimeMillis();
         //Get the input file given as input
         Data.inputFileName = args[0];
@@ -490,9 +492,10 @@ public class GaussianLDAAlias implements Runnable {
         }
 
         /**************** Initialize ***********/
-        System.out.println("Starting to initialize");
+        System.out.println("Initializing ..");
         initialize();
         System.out.println("Gibbs sampler will run for " + numIterations + " iterations");
+        System.out.println("Free Memory: " + FreeMemory.get(true, 5) + " MB");
         /******sample*********/
         sample();
         long stopTime = System.currentTimeMillis();
@@ -541,6 +544,7 @@ public class GaussianLDAAlias implements Runnable {
 
 
     public static void initRun() {
+        System.out.println("Initial run started at " + new Date());
         VoseAlias temp = new VoseAlias();
         temp.init(K);
         //temp.init_temp();
@@ -566,7 +570,7 @@ public class GaussianLDAAlias implements Runnable {
             temp.generateTable();
             q[w].copy(temp);
         }
-
+        System.out.println("Initial run finished at " + new Date());
     }
 
 }
