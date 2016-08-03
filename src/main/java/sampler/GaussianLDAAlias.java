@@ -331,7 +331,7 @@ public class GaussianLDAAlias implements Runnable {
         for (int currentIteration = 0; currentIteration < numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
             long last1000Time = System.currentTimeMillis();
-            for (int d = 0; d < corpus.size(); d++) {
+            for (int d = 0; d < 100; d++) {
                 if (d % OUTPUT_EVERY == 0) {
                     //runLogger.write("Done for document "+d+"\n");
                     System.out.println(String.format("Current document: %d/%d, last %d: %d s, memory: %d MB",
