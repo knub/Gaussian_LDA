@@ -282,10 +282,10 @@ public class Util {
     /**
      * Prints the multivariate distributions (the word|topic distribution)
      */
-    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName) throws IOException {
+    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName, int currentIteration) throws IOException {
         for (int i = 0; i < K; i++) {
             BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + i + ".txt", true), "UTF-8"));
+                    new FileOutputStream(String.format("%sgaussians-%03d.txt", dirName, currentIteration), false), "UTF-8"));
             //first write the mean
             for (int l = 0; l < tableMeans.get(i).numRows; l++)
                 output.write(tableMeans.get(i).get(l, 0) + " ");
@@ -310,7 +310,7 @@ public class Util {
 
     public static void printNumCustomersPerTopic(int[][] tableCountsPerDoc, String dirName, int numTopics, int numDocuments) throws IOException {
         BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(dirName + "topic_counts" + ".txt", true), "UTF-8"));
+                new FileOutputStream(dirName + "topic_counts" + ".txt", false), "UTF-8"));
         for (int k = 0; k < numTopics; k++) {
             int n_k = 0;
             for (int n = 0; n < numDocuments; n++)
@@ -324,7 +324,7 @@ public class Util {
         //for each document, print the normalized count
         try {
             BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "document_topic" + ".txt", true), "UTF-8"));
+                    new FileOutputStream(dirName + "document_topic" + ".txt", false), "UTF-8"));
             System.out.println(numDocs);
             for (int i = 0; i < numDocs; i++) {
                 double sum = 0;
