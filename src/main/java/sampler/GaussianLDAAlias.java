@@ -1,26 +1,23 @@
 package sampler;
 
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-
+import data.Data;
 import org.apache.commons.math3.special.Gamma;
 import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.DecompositionFactory;
 import org.ejml.interfaces.decomposition.CholeskyDecomposition;
 import org.ejml.ops.CommonOps;
-
 import priors.NormalInverseWishart;
 import util.Util;
 import util.VoseAlias;
-import data.Data;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
 
 
 /**
@@ -96,11 +93,6 @@ public class GaussianLDAAlias implements Runnable {
     private static ArrayList<Double> logDeterminants = new ArrayList<>();
 
     /**
-     * current iteration counter
-     */
-    private static int currentIteration;
-
-    /**
      * the normal inverse wishart prior
      */
     private static NormalInverseWishart prior;
@@ -115,8 +107,6 @@ public class GaussianLDAAlias implements Runnable {
      * file path for reading vocab (to form mapping) and the initial cluster assignment
      */
     private static String dirName;
-    private static BufferedWriter runLogger = null;
-    private static BufferedWriter perplexities = null;
     //the dirichlet hyperparam.
     private static double alpha;
 
@@ -197,7 +187,6 @@ public class GaussianLDAAlias implements Runnable {
      * @throws IOException
      */
     public static void initialize() throws IOException {
-        currentIteration = 0;
         //first check the prior degrees of freedom. It has to be >= num_dimension
         if (prior.nu_0 < (double) Data.D) {
             System.out.println("The initial degrees of freedom of the prior is less than the dimension!. Setting it to the number of dimension: " + Data.D);
@@ -280,18 +269,16 @@ public class GaussianLDAAlias implements Runnable {
         for (int i = 0; i < K; i++)
             if (!tableCounts.containsKey(i)) {
                 System.out.println("Still some tables are empty....exiting!");
-                runLogger.write("Still some tables are empty....exiting!");
+                System.out.println("Still some tables are empty....exiting!");
                 System.exit(1);
             }
 
-        runLogger.write("Initialization complete\n");
+        System.out.println("Initialization complete");
         System.out.println("Initialization complete");
         //calculate initial avg ll
         double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
         System.out.println("Average ll at the begining " + avgLL);
-        runLogger.write("Average ll at the begining " + avgLL + "\n");
-        perplexities.write(avgLL + "\n");
-        runLogger.flush();
+        System.out.println("Average ll at the begining " + avgLL);
     }
 
     private static double logMultivariateTDensity(DenseMatrix64F x, int tableId) {
@@ -334,16 +321,15 @@ public class GaussianLDAAlias implements Runnable {
      *
      * @throws IOException
      */
-    private static void sample() throws IOException {
+    private static void sample() throws IOException, InterruptedException {
         BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
-        for (currentIteration = 0; currentIteration < numIterations; currentIteration++) {
+        for (int currentIteration = 0; currentIteration < numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
-            runLogger.write("Starting iteration " + currentIteration + "\n");
-            System.out.println("Starting iteration " + currentIteration);
+            long last1000Time = System.currentTimeMillis();
             for (int d = 0; d < corpus.size(); d++) {
                 ArrayList<Integer> document = corpus.get(d);
                 int wordCounter = 0;
@@ -427,36 +413,22 @@ public class GaussianLDAAlias implements Runnable {
                 }
                 if (d % 10 == 0) {
                     //runLogger.write("Done for document "+d+"\n");
-                    System.out.println("Done for document " + d);
-                    System.out.println("Time for document  " + d + " " + (System.currentTimeMillis() - startTime));
+                    System.out.println(String.format("Current document: %d/%d, last 1000: %d s",
+                            d, corpus.size(), (System.currentTimeMillis() - last1000Time) / 1000));
+                    last1000Time = System.currentTimeMillis();
                 }
             }
-            //Printing stuffs now
-            runLogger.write("Iteration completed: " + currentIteration + "\n");
             long stopTime = System.currentTimeMillis();
-            double elapsedTime = (stopTime - startTime) / (double) 1000;
-            runLogger.write("Time taken for this iteration " + elapsedTime + "\n");
+            long elapsedTime = (stopTime - startTime) / 1000;
+            System.out.println(String.format("Finished iteration %d in %d s", currentIteration, elapsedTime));
 
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
-            System.out.println("Avg log-likelihood at the end of iteration " + currentIteration + " is " + avgLL);
-            runLogger.write("Avg log-likelihood at the end of iteration " + currentIteration + " is " + avgLL + "\n");
-            perplexities.write(avgLL + "\n");
-            runLogger.flush();
-            perplexities.flush();
+            System.out.println("Avg log-likelihood: " + avgLL);
         }
         done = true;
-        try {
-            t1.join();
-        } catch (InterruptedException e1) {
-            e1.printStackTrace();
-        }
-        try {
-            out.close();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        t1.join();
+        out.close();
     }
 
     public static ArrayList<DenseMatrix64F> getTableMeans() {
@@ -467,8 +439,7 @@ public class GaussianLDAAlias implements Runnable {
         return tableCholeskyLTriangularMat;
     }
 
-    public static void main(String[] args) throws IOException {
-        // TODO Auto-generated method stub
+    public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.currentTimeMillis();
         //Get the input file given as input
         Data.inputFileName = args[0];
@@ -518,35 +489,15 @@ public class GaussianLDAAlias implements Runnable {
             q[w].init(K);
         }
 
-        /***Create log file*****/
-        try {
-            runLogger = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "run_log.txt"), "UTF-8"));
-            perplexities = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "avgLL.txt"), "UTF-8"));
-        } catch (UnsupportedEncodingException | FileNotFoundException e) {
-            e.printStackTrace();
-        }
         /**************** Initialize ***********/
         System.out.println("Starting to initialize");
-        runLogger.write("Starting to initialize\n");
-        runLogger.flush();
         initialize();
         System.out.println("Gibbs sampler will run for " + numIterations + " iterations");
-        runLogger.write("Gibbs sampler will run for " + numIterations + " iterations");
-        runLogger.flush();
         /******sample*********/
         sample();
-        //System.out.println("Num of tables in each iteration: ");
-        runLogger.write("Num of tables in each iteration: \n");
         long stopTime = System.currentTimeMillis();
         double elapsedTime = (stopTime - startTime) / (double) 1000;
-        //System.out.println("Time taken "+elapsedTime);
-        runLogger.write("Time taken " + elapsedTime);
         System.out.println("Time taken " + elapsedTime);
-        runLogger.close();
-        perplexities.close();
-        //Print the gaussian
         System.out.println("Printing the distributions");
         Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, K, dirName);
         Util.printDocumentTopicDistribution(tableCountsPerDoc, N, K, dirName, alpha);
