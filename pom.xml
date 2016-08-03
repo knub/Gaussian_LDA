@@ -79,7 +79,7 @@
                                 <jvmArg>-Xms30g</jvmArg>
                                 <jvmArg>-Xmx30g</jvmArg>
                                 <jvmArg>-XX:ParallelGCThreads=8</jvmArg>
-                                 <jvmArg>-XX:+PrintGC</jvmArg>
+                                 <!-- <jvmArg>-XX:+PrintGC</jvmArg> -->
                             </jvmArgs>
                         </launcher>
                     </launchers>
