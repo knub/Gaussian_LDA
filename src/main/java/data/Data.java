@@ -26,7 +26,7 @@ public class Data {
     /**
      * The dimension of the vectors.
      */
-    public static int D;
+    public static int numDimensions;
     /**
      * Number of data points
      */
@@ -46,12 +46,12 @@ public class Data {
             lines.add(line);
         reader.close();
         numVectors = lines.size();
-        DenseMatrix64F data = new DenseMatrix64F(numVectors, D); //initialize the data matrix
+        DenseMatrix64F data = new DenseMatrix64F(numVectors, numDimensions); //initialize the data matrix
         //now populate the matrix
         for (int i = 0; i < lines.size(); i++) {
             String vector = lines.get(i);
             String[] vals = vector.split(" ");
-            assert vals.length == D;
+            assert vals.length - 1 == numDimensions : String.format("vals.length=%d should be numDimensions=%d", vals.length - 1, numDimensions);
             int j = 0;
             boolean first = true;
             for (String val : vals) {
@@ -341,7 +341,7 @@ public class Data {
         try {
             PrintStream out = new PrintStream("20_news/window5/20_news_vectors_30.txt", "UTF-8");
             //first print the 0's in the 1st line
-            for (int i = 0; i < Data.D; i++)
+            for (int i = 0; i < Data.numDimensions; i++)
                 out.print("0.0" + " ");
             out.println();
 
@@ -363,7 +363,7 @@ public class Data {
             while ((word20News = vocab20News.readLine()) != null) {
                 //see if this word is blacklisted
                 if (blackList.contains(counter + 1)) {
-                    for (int i = 0; i < Data.D; i++)
+                    for (int i = 0; i < Data.numDimensions; i++)
                         out.print("0.0" + " ");
                     out.println();
                     counter++;

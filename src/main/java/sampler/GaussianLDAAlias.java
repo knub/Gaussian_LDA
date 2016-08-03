@@ -96,7 +96,7 @@ public class GaussianLDAAlias implements Runnable {
      */
     private static NormalInverseWishart prior;
 
-    private static CholeskyDecomposition<DenseMatrix64F> decomposer = DecompositionFactory.chol(Data.D, true);
+    private static CholeskyDecomposition<DenseMatrix64F> decomposer = DecompositionFactory.chol(Data.numDimensions, true);
     /**
      * Caching the choelsky of prior sigma0
      */
@@ -126,7 +126,7 @@ public class GaussianLDAAlias implements Runnable {
         int count = tableCounts.get(tableId);
         double k_n = prior.k_0 + count;
         double nu_n = prior.nu_0 + count;
-        double scaleTdistrn = (k_n + 1) / (k_n * (nu_n - Data.D + 1));
+        double scaleTdistrn = (k_n + 1) / (k_n * (nu_n - Data.numDimensions + 1));
 
         DenseMatrix64F oldLTriangularDecomp = tableCholeskyLTriangularMat.get(tableId);
         if (isRemoved) {
@@ -136,14 +136,14 @@ public class GaussianLDAAlias implements Runnable {
              * therefore x = sqrt((k_0 + numDocuments - 1)/(k_0 + numDocuments)) (X_{n} - \mu_{n})
              * Note here \mu_n will be the mean before updating. After updating sigma_n, we will update \mu_n.
              */
-            DenseMatrix64F x = new DenseMatrix64F(Data.D, 1);
+            DenseMatrix64F x = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.sub(dataVectors[custId], tableMeans.get(tableId), x); //calculate (X_{n} - \mu_{n-1})
             double coeff = Math.sqrt((k_n + 1) / k_n);
             CommonOps.scale(coeff, x);
             Util.cholRank1Downdate(oldLTriangularDecomp, x);
             tableCholeskyLTriangularMat.set(tableId, oldLTriangularDecomp);//the cholRank1Downdate modifies the oldLTriangularDecomp, therefore putting it back to the map
             //updateMean(tableId);
-            DenseMatrix64F newMean = new DenseMatrix64F(Data.D, 1);
+            DenseMatrix64F newMean = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.scale(k_n + 1, tableMeans.get(tableId), newMean);
             CommonOps.subEquals(newMean, dataVectors[custId]);
             CommonOps.divide(k_n, newMean);
@@ -151,7 +151,7 @@ public class GaussianLDAAlias implements Runnable {
 
         } else //new customer is added
         {
-            DenseMatrix64F newMean = new DenseMatrix64F(Data.D, 1);
+            DenseMatrix64F newMean = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.scale(k_n - 1, tableMeans.get(tableId), newMean);
             CommonOps.addEquals(newMean, dataVectors[custId]);
             CommonOps.divide(k_n, newMean);
@@ -160,18 +160,18 @@ public class GaussianLDAAlias implements Runnable {
              * The rank1 update equation is
              * \Sigma_{n+1} = \Sigma_{n} + (k_0 + n + 1)/(k_0 + n) * (x_{n+1} - \mu_{n+1})(x_{n+1} - \mu_{n+1})^T
              */
-            DenseMatrix64F x = new DenseMatrix64F(Data.D, 1);
+            DenseMatrix64F x = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.sub(dataVectors[custId], tableMeans.get(tableId), x); //calculate (X_{n} - \mu_{n-1})
             double coeff = Math.sqrt(k_n / (k_n - 1));
             CommonOps.scale(coeff, x);
             Util.cholRank1Update(oldLTriangularDecomp, x);
             tableCholeskyLTriangularMat.set(tableId, oldLTriangularDecomp);//the cholRank1Downdate modifies the oldLTriangularDecomp, therefore putting it back to the map
         }
-        //calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
+        //calculate the 0.5*log(det) + numDimensions/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
         double logDet = 0.0;
-        for (int l = 0; l < Data.D; l++)
+        for (int l = 0; l < Data.numDimensions; l++)
             logDet = logDet + Math.log(oldLTriangularDecomp.get(l, l));
-        logDet += Data.D * Math.log(scaleTdistrn) / (double) 2;
+        logDet += Data.numDimensions * Math.log(scaleTdistrn) / (double) 2;
 
         if (tableId < logDeterminants.size())
             logDeterminants.set(tableId, logDet);
@@ -187,20 +187,20 @@ public class GaussianLDAAlias implements Runnable {
      */
     public static void initialize() throws IOException {
         //first check the prior degrees of freedom. It has to be >= num_dimension
-        if (prior.nu_0 < (double) Data.D) {
-            System.out.println("The initial degrees of freedom of the prior is less than the dimension!. Setting it to the number of dimension: " + Data.D);
-            prior.nu_0 = Data.D;
+        if (prior.nu_0 < (double) Data.numDimensions) {
+            System.out.println("The initial degrees of freedom of the prior is less than the dimension!. Setting it to the number of dimension: " + Data.numDimensions);
+            prior.nu_0 = Data.numDimensions;
         }
         //storing zeros in sumTableCustomers and later will keep on adding each customer. Also initialize tableInverseCovariances and determinants
-        double scaleTdistrn = (prior.k_0 + 1) / (prior.k_0 * (prior.nu_0 - Data.D + 1));
+        double scaleTdistrn = (prior.k_0 + 1) / (prior.k_0 * (prior.nu_0 - Data.numDimensions + 1));
         for (int i = 0; i < numTopics; i++) {
             DenseMatrix64F priorMean = new DenseMatrix64F(prior.mu_0);
             DenseMatrix64F initialCholesky = new DenseMatrix64F(CholSigma0);
-            //calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
+            //calculate the 0.5*log(det) + numDimensions/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
             double logDet = 0.0;
-            for (int l = 0; l < Data.D; l++)
+            for (int l = 0; l < Data.numDimensions; l++)
                 logDet = logDet + Math.log(CholSigma0.get(l, l));
-            logDet += Data.D * Math.log(scaleTdistrn) / (double) 2;
+            logDet += Data.numDimensions * Math.log(scaleTdistrn) / (double) 2;
             logDeterminants.add(logDet);
             tableMeans.add(priorMean);
             tableCholeskyLTriangularMat.add(initialCholesky);
@@ -281,25 +281,25 @@ public class GaussianLDAAlias implements Runnable {
         int count = tableCounts.get(tableId);
         double k_n = prior.k_0 + count;
         double nu_n = prior.nu_0 + count;
-        double scaleTdistrn = Math.sqrt((k_n + 1) / (k_n * (nu_n - Data.D + 1)));
-        double nu = prior.nu_0 + count - Data.D + 1;
+        double scaleTdistrn = Math.sqrt((k_n + 1) / (k_n * (nu_n - Data.numDimensions + 1)));
+        double nu = prior.nu_0 + count - Data.numDimensions + 1;
         //Since I am storing lower triangular matrices, therefore it is easy to calculate the value of (x-\mu)^T\Sigma^-1(x-\mu)
         //therefore I am gonna use triangular solver
         //first calculate (x-mu)
-        DenseMatrix64F x_minus_mu = new DenseMatrix64F(Data.D, 1);
+        DenseMatrix64F x_minus_mu = new DenseMatrix64F(Data.numDimensions, 1);
         CommonOps.sub(x, tableMeans.get(tableId), x_minus_mu);
         //now scale the lower triangular matrix
-        DenseMatrix64F lTriangularChol = new DenseMatrix64F(Data.D, Data.D);
+        DenseMatrix64F lTriangularChol = new DenseMatrix64F(Data.numDimensions, Data.numDimensions);
         CommonOps.scale(scaleTdistrn, tableCholeskyLTriangularMat.get(tableId), lTriangularChol);
-        TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.D); //now x_minus_mu has the solved value
+        TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.numDimensions); //now x_minus_mu has the solved value
         //Now take xTx
-        DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1, Data.D);
+        DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1, Data.numDimensions);
         CommonOps.transpose(x_minus_mu, x_minus_mu_T);
         DenseMatrix64F mul = new DenseMatrix64F(1, 1);
         CommonOps.mult(x_minus_mu_T, x_minus_mu, mul);
         double val = mul.get(0, 0);
         //noinspection UnnecessaryLocalVariable
-        double logprob = Gamma.logGamma((nu + Data.D) / 2) - (Gamma.logGamma(nu / 2) + Data.D / 2 * (Math.log(nu) + Math.log(Math.PI)) + logDeterminants.get(tableId) + (nu + Data.D) / 2 * Math.log(1 + val / nu));
+        double logprob = Gamma.logGamma((nu + Data.numDimensions) / 2) - (Gamma.logGamma(nu / 2) + Data.numDimensions / 2 * (Math.log(nu) + Math.log(Math.PI)) + logDeterminants.get(tableId) + (nu + Data.numDimensions) / 2 * Math.log(1 + val / nu));
         return logprob;
     }
 
@@ -326,9 +326,9 @@ public class GaussianLDAAlias implements Runnable {
         for (int currentIteration = 0; currentIteration < numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
             long last1000Time = System.currentTimeMillis();
-            for (int d = 0; d < 100; d++) {
+            for (int d = 0; d < 21; d++) {
                 if (d % OUTPUT_EVERY == 0) {
-                    System.out.println(String.format("Current document: %d/%d, last %d: %d s, memory: %d MB",
+                    System.out.println(String.format("Current document: % 5d/%d, last %d: % 3d s, memory: %d MB",
                             d, corpus.size(), OUTPUT_EVERY,
                             (System.currentTimeMillis() - last1000Time) / 1000,
                             FreeMemory.get(false, 0)));
@@ -422,6 +422,7 @@ public class GaussianLDAAlias implements Runnable {
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, topicAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
             System.out.println("Avg log-likelihood: " + avgLL);
+            Util.printTopics(tableMeans, tableCholeskyLTriangularMat, dataVectors, numTopics, dirName, currentIteration);
         }
         done = true;
         System.out.println("Waiting for joining thread");
@@ -437,7 +438,7 @@ public class GaussianLDAAlias implements Runnable {
         //First set the dimension of data which user has given input
         int D = Integer.parseInt(args[1]);
         numIterations = Integer.parseInt(args[2]);
-        Data.D = D;
+        Data.numDimensions = D;
         //read the initial number of clusters for k-means
         numTopics = Integer.parseInt(args[3]);
         //read the vocab and the cluster file
@@ -456,13 +457,13 @@ public class GaussianLDAAlias implements Runnable {
         //initialize the prior
         prior = new NormalInverseWishart();
         prior.mu_0 = Util.getSampleMean(dataVectors);
-        //prior.mu_0 = new DenseMatrix64F(Data.D,1);//init to zeros
-        prior.nu_0 = Data.D; //initializing to the dimension
-        prior.sigma_0 = CommonOps.identity(Data.D); //setting as the identity matrix
+        //prior.mu_0 = new DenseMatrix64F(Data.numDimensions,1);//init to zeros
+        prior.nu_0 = Data.numDimensions; //initializing to the dimension
+        prior.sigma_0 = CommonOps.identity(Data.numDimensions); //setting as the identity matrix
         //CommonOps.scale(5*max, prior.sigma_0);
-        CommonOps.scale(3 * Data.D, prior.sigma_0);
+        CommonOps.scale(3 * Data.numDimensions, prior.sigma_0);
         prior.k_0 = 0.1;
-        CholSigma0 = new DenseMatrix64F(Data.D, Data.D);
+        CholSigma0 = new DenseMatrix64F(Data.numDimensions, Data.numDimensions);
         CommonOps.addEquals(CholSigma0, prior.sigma_0);
         alpha = 1 / (double) numTopics;
         if (!decomposer.decompose(CholSigma0))//cholesky decomp

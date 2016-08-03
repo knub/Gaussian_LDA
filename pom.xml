@@ -17,6 +17,17 @@
     </properties>
 
     <dependencies>
+        <!-- Guava collections -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
+        </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
@@ -79,6 +90,7 @@
                                 <jvmArg>-Xms30g</jvmArg>
                                 <jvmArg>-Xmx30g</jvmArg>
                                 <jvmArg>-XX:ParallelGCThreads=8</jvmArg>
+                                <jvmArg>-enableassertions</jvmArg>
                                  <!-- <jvmArg>-XX:+PrintGC</jvmArg> -->
                             </jvmArgs>
                         </launcher>

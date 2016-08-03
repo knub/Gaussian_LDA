@@ -55,7 +55,7 @@ fi
 
 #Create the directory structure
 time_stamp=`date "+%b_%d_%Y_%H.%M.%S"` 
-DIR_NAME='output'/'D'$NUM_DIM/'I'$NUM_ITER/'K'$INITIAL_K/'GLDA'/$time_stamp/
+DIR_NAME='output'/'numDimensions'$NUM_DIM/'I'$NUM_ITER/'K'$INITIAL_K/'GLDA'/$time_stamp/
 mkdir -p $DIR_NAME
 echo 'The output directory is' $DIR_NAME
 #Delete the bin directory first so that it doesnot run the old version when compilation breaks

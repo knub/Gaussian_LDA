@@ -1,6 +1,8 @@
 package util;
 
 import data.Data;
+import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
+import org.apache.commons.math3.util.FastMath;
 import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
@@ -8,6 +10,7 @@ import org.ejml.ops.RandomMatrices;
 import priors.NormalInverseWishart;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -22,19 +25,19 @@ public class Util {
      */
     public static void cholRank1Update(DenseMatrix64F L, DenseMatrix64F x) {
         //L should be a square lower triangular matrix (although not checking for triangularity here explicitly)
-        //Data.D = 2;
-        assert L.numCols == Data.D;
-        assert L.numRows == Data.D;
+        //Data.numDimensions = 2;
+        assert L.numCols == Data.numDimensions;
+        assert L.numRows == Data.numDimensions;
         //x should be a vector
         assert x.numCols == 1;
-        assert x.numRows == Data.D;
+        assert x.numRows == Data.numDimensions;
 
-        for (int k = 0; k < Data.D; k++) {
+        for (int k = 0; k < Data.numDimensions; k++) {
             double r = Math.sqrt(Math.pow(L.get(k, k), 2) + Math.pow(x.get(k, 0), 2));
             double c = r / L.get(k, k);
             double s = x.get(k, 0) / L.get(k, k);
             L.set(k, k, r);
-            for (int l = k + 1; l < Data.D; l++) {
+            for (int l = k + 1; l < Data.numDimensions; l++) {
                 double val = (L.get(l, k) + s * x.get(l, 0)) / c;
                 L.set(l, k, val);
                 val = c * x.get(l, 0) - s * val;
@@ -50,19 +53,19 @@ public class Util {
      */
     public static void cholRank1Downdate(DenseMatrix64F L, DenseMatrix64F x) {
         //L should be a square lower triangular matrix (although not checking for triangularity here explicitly)
-        //Data.D = 2;
-        assert L.numCols == Data.D;
-        assert L.numRows == Data.D;
+        //Data.numDimensions = 2;
+        assert L.numCols == Data.numDimensions;
+        assert L.numRows == Data.numDimensions;
         //x should be a vector
         assert x.numCols == 1;
-        assert x.numRows == Data.D;
+        assert x.numRows == Data.numDimensions;
 
-        for (int k = 0; k < Data.D; k++) {
+        for (int k = 0; k < Data.numDimensions; k++) {
             double r = Math.sqrt(L.get(k, k) * L.get(k, k) - x.get(k, 0) * x.get(k, 0));
             double c = r / L.get(k, k);
             double s = x.get(k, 0) / L.get(k, k);
             L.set(k, k, r);
-            for (int l = k + 1; l < Data.D; l++) {
+            for (int l = k + 1; l < Data.numDimensions; l++) {
                 double val = (L.get(l, k) - s * x.get(l, 0)) / c;
                 L.set(l, k, val);
                 val = c * x.get(l, 0) - s * L.get(l, k);
@@ -170,7 +173,7 @@ public class Util {
      * mean of the data
      */
     public static DenseMatrix64F getSampleMean(DenseMatrix64F[] data) {
-        DenseMatrix64F mean = new DenseMatrix64F(Data.D, 1);//initialized to 0
+        DenseMatrix64F mean = new DenseMatrix64F(Data.numDimensions, 1);//initialized to 0
         for (DenseMatrix64F vec : data)
             CommonOps.addEquals(mean, vec);
 
@@ -185,19 +188,95 @@ public class Util {
      * @param mean mean of the data; can be calculated by calling getSampleMean (see above)
      */
     public static DenseMatrix64F getSampleCovariance(DenseMatrix64F[] data, DenseMatrix64F mean) {
-        DenseMatrix64F sampleCovariance = new DenseMatrix64F(Data.D, Data.D);
+        DenseMatrix64F sampleCovariance = new DenseMatrix64F(Data.numDimensions, Data.numDimensions);
         for (int i = 0; i < Data.numVectors; i++) {
-            DenseMatrix64F x_minus_x_bar = new DenseMatrix64F(Data.D, 1);
+            DenseMatrix64F x_minus_x_bar = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.add(data[i], x_minus_x_bar, x_minus_x_bar);
             CommonOps.sub(x_minus_x_bar, mean, x_minus_x_bar); //(x_i - x_bar)
-            DenseMatrix64F x_minus_x_bar_T = new DenseMatrix64F(1, Data.D);
+            DenseMatrix64F x_minus_x_bar_T = new DenseMatrix64F(1, Data.numDimensions);
             x_minus_x_bar_T = CommonOps.transpose(x_minus_x_bar, x_minus_x_bar_T); //(x_i - x_bar)^T
-            DenseMatrix64F mul = new DenseMatrix64F(Data.D, Data.D);
+            DenseMatrix64F mul = new DenseMatrix64F(Data.numDimensions, Data.numDimensions);
             CommonOps.mult(x_minus_x_bar, x_minus_x_bar_T, mul);//(x_i - x_bar)(x_i - x_bar)^T
             CommonOps.add(mul, sampleCovariance, sampleCovariance);
             CommonOps.divide(Data.numVectors - 1, sampleCovariance);
         }
         return sampleCovariance;
+    }
+
+    static class WordProb {
+        public int wordId;
+        public double prob;
+
+        public WordProb(int wordId, double prob) {
+            this.wordId = wordId;
+            this.prob = prob;
+        }
+    }
+
+    static class WordProbComparator implements Comparator<WordProb> {
+        @Override
+        public int compare(WordProb wp1, WordProb wp2) {
+            return (int) FastMath.signum(wp1.prob - wp2.prob);
+        }
+    }
+
+    public static void printTopics(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, DenseMatrix64F[] dataVectors, int K, String dirName, int iteration) throws IOException {
+        System.out.println("Starting printTopics: " + new Date());
+        assert dataVectors[0].numRows == 200 : "dataVectors nr rows should be 200 and not " + dataVectors[0].numRows;
+        assert dataVectors[0].numCols == 1 : "dataVectors nr cols should be 1 and not " + dataVectors[0].numCols;
+        System.out.println("Calculating topics");
+        PrintWriter output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(String.format("%sgaussian-%03d.topics", dirName, iteration)), StandardCharsets.UTF_8), true);
+        for (int i = 0; i < K; i++) {
+            System.out.println("Topic " + i);
+            DenseMatrix64F mean = tableMeans.get(i);
+            assert mean.numRows == 200 : "there should be 50 rows instead of " + mean.numRows;
+            assert mean.numCols == 1 : "there should be 1 column instead of " + mean.numCols;
+//            output.write(tableMeans.get(i).get(l, 0) + " ");
+
+            // get the covariance matrix
+            DenseMatrix64F chol = tableCholeskyLTriangularMat.get(i);
+            DenseMatrix64F cholT = new DenseMatrix64F(chol.numRows, chol.numCols);
+            CommonOps.transpose(chol, cholT);
+            DenseMatrix64F covar = new DenseMatrix64F(chol.numRows, chol.numCols);
+            CommonOps.mult(chol, cholT, covar);
+            assert covar.numRows == 200 : "there should be 200 rows in covariance matrix instead of " + covar.numRows;
+            assert covar.numCols == 200 : "there should be 200 columns in covariance matrix instead of " + covar.numCols;
+
+            double[][] covariance = new double[200][200];
+            for (int j = 0; j < covar.numRows; j += 1) {
+                for (int k = 0; k < covar.numCols; k += 1) {
+                    covariance[j][k]= covar.get(j, k);
+                }
+            }
+            // do stuff row-wise
+            MultivariateNormalDistribution nd = new MultivariateNormalDistribution(mean.getData(), covariance);
+
+            int TOP_WORDS = 10;
+            PriorityQueue<WordProb> queue = new PriorityQueue<>(TOP_WORDS, new WordProbComparator());
+            for (int l = 0; l < dataVectors.length; l += 1) {
+                DenseMatrix64F vector = dataVectors[l];
+                double currentProb = nd.density(vector.data);
+                if (queue.size() <= TOP_WORDS) {
+                    System.out.println(String.format("Adding %d with prob %f", l, currentProb));
+                    queue.add(new WordProb(l, currentProb));
+                    continue;
+                }
+                double leastProb = queue.peek().prob;
+                if (leastProb < currentProb) {
+                    WordProb removedWordProb = queue.remove();
+                    assert removedWordProb.prob == leastProb : "least element should be removed";
+                    queue.add(new WordProb(l, currentProb));
+                }
+           }
+
+            output.print(queue.remove().wordId);
+            while (queue.size() > 0) {
+                output.print(" " + queue.remove().wordId);
+            }
+            output.write("\n");
+        }
+        output.close();
+        System.out.println("Finishing printTopics: " + new Date());
     }
 
     /**
@@ -293,29 +372,29 @@ public class Util {
 //			}
             //System.out.println(n_k);
         }
-        //nu_0 + N_k - D
+        //nu_0 + N_k - numDimensions
         double[] scalar = new double[K];
         for (int k = 0; k < K; k++) {
-            scalar[k] = prior.nu_0 + N_k[k] - Data.D;
+            scalar[k] = prior.nu_0 + N_k[k] - Data.numDimensions;
             //System.out.println(scalar[k]);
         }
 
         //now divide the cholesky's by sqrt(scalar)
         ArrayList<DenseMatrix64F> scaledCholeskies = new ArrayList<>();
         for (int k = 0; k < K; k++) {
-            DenseMatrix64F scaledCholesky = new DenseMatrix64F(Data.D, Data.D);
+            DenseMatrix64F scaledCholesky = new DenseMatrix64F(Data.numDimensions, Data.numDimensions);
             CommonOps.divide(Math.sqrt(scalar[k]), tableCholeskyLTriangularMat.get(k), scaledCholesky);
             scaledCholeskies.add(scaledCholesky);
         }
 
         //System.out.println(tableAssignments);
 
-        //logDensity of mulitvariate normal is given by -0.5*(log D + K*log(2*\pi)+(x-\mu)^T\Sigma^-1(x-\mu))
-        //calculate log D for all table from cholesky
+        //logDensity of mulitvariate normal is given by -0.5*(log numDimensions + K*log(2*\pi)+(x-\mu)^T\Sigma^-1(x-\mu))
+        //calculate log numDimensions for all table from cholesky
         ArrayList<Double> logDeterminants = new ArrayList<>();
         for (int i = 0; i < K; i++) {
             double logDet = 0.0;
-            for (int l = 0; l < Data.D; l++)
+            for (int l = 0; l < Data.numDimensions; l++)
                 logDet = logDet + Math.log(scaledCholeskies.get(i).get(l, l));
             logDeterminants.add(logDet);
         }
@@ -328,16 +407,16 @@ public class Util {
                 DenseMatrix64F x = dataVectors[word];
                 int tableId = tableAssignments.get(docCounter).get(wordCounter);
                 //calculate (x-\mu)
-                DenseMatrix64F x_minus_mu = new DenseMatrix64F(Data.D, 1);
+                DenseMatrix64F x_minus_mu = new DenseMatrix64F(Data.numDimensions, 1);
                 CommonOps.sub(x, tableMeans.get(tableId), x_minus_mu);
                 DenseMatrix64F lTriangularChol = scaledCholeskies.get(tableId);
-                TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.D); //now x_minus_mu has the solved value
-                DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1, Data.D);
+                TriangularSolver.solveL(lTriangularChol.data, x_minus_mu.data, Data.numDimensions); //now x_minus_mu has the solved value
+                DenseMatrix64F x_minus_mu_T = new DenseMatrix64F(1, Data.numDimensions);
                 CommonOps.transpose(x_minus_mu, x_minus_mu_T);
                 DenseMatrix64F mul = new DenseMatrix64F(1, 1);
                 CommonOps.mult(x_minus_mu_T, x_minus_mu, mul);
                 double val = mul.get(0, 0);
-                double logDensity = 0.5 * (val + Data.D * Math.log(2 * Math.PI)) + logDeterminants.get(tableId);
+                double logDensity = 0.5 * (val + Data.numDimensions * Math.log(2 * Math.PI)) + logDeterminants.get(tableId);
                 totalLogLL = totalLogLL - logDensity;
                 wordCounter++;
                 totalWordCounter++;
@@ -522,7 +601,7 @@ public class Util {
     public static void main(String[] args) {
         //getClusterNum();
         //makeClusterNumbersContinuous();
-//		Data.D = 4;
+//		Data.numDimensions = 4;
 //		DenseMatrix64F L = CommonOps.identity(4);
 //		Random rand = new Random();
 //		DenseMatrix64F x = RandomMatrices.createRandom(4, 1, -1, 1, rand);
@@ -547,7 +626,7 @@ public class Util {
 //		System.out.println("x_copy =");
 //		System.out.println(x_copy);
 
-        Data.D = 4;
+        Data.numDimensions = 4;
         DenseMatrix64F L = CommonOps.identity(4);
         Random rand = new Random();
         DenseMatrix64F x = RandomMatrices.createRandom(4, 1, -1, 1, rand);
@@ -570,20 +649,20 @@ public class Util {
 //	public static void cholRank1DowndateUpper(DenseMatrix64F L, DenseMatrix64F x)
 //	{
 //		//L should be a square lower triangular matrix (although not checking for triangularity here explicitly)
-//		//Data.D = 2;
-//		assert L.numCols == Data.D;
-//		assert L.numRows == Data.D;
+//		//Data.numDimensions = 2;
+//		assert L.numCols == Data.numDimensions;
+//		assert L.numRows == Data.numDimensions;
 //		//x should be a vector
 //		assert x.numCols == 1;
-//		assert x.numRows == Data.D;
+//		assert x.numRows == Data.numDimensions;
 //		
-//		for(int k=0;k<Data.D;k++)
+//		for(int k=0;k<Data.numDimensions;k++)
 //		{
 //			double r = Math.sqrt(L.get(k, k)*L.get(k, k) - x.get(k, 0)*x.get(k, 0));
 //			double c = r/(double)L.get(k, k);
 //			double s = x.get(k, 0)/L.get(k, k);
 //			L.set(k, k, r);
-//			for(int l=k+1;l<Data.D;l++)
+//			for(int l=k+1;l<Data.numDimensions;l++)
 //			{
 //				double val = (L.get(k, l) - s*x.get(l, 0))/(double)c ;
 //				L.set(k, l, val);
@@ -595,7 +674,7 @@ public class Util {
 
 //	/**
 //	 * Does a partial cholesky update i.e just updates the diagonal element. This is sufficient to do when we have to just find the determinant of the original matrix. This operation
-//	 * unlike  the above 2 questions doesnot change the original L matrix. I am returning the determinant itself, removes the step where we have to make copy of L which might be O(D^2)
+//	 * unlike  the above 2 questions doesnot change the original L matrix. I am returning the determinant itself, removes the step where we have to make copy of L which might be O(numDimensions^2)
 //	 * @param L
 //	 * @param x
 //	 */
@@ -603,14 +682,14 @@ public class Util {
 //	{
 //		//DenseMatrix64F LPartial = new DenseMatrix64F(L);//copying the matrix	
 //		//L should be a square lower triangular matrix (although not checking for triangularity here explicitly)
-//		//Data.D = 2;
-//		assert L.numCols == Data.D;
-//		assert L.numRows == Data.D;
+//		//Data.numDimensions = 2;
+//		assert L.numCols == Data.numDimensions;
+//		assert L.numRows == Data.numDimensions;
 //		//x should be a vector
 //		assert x.numCols == 1;
-//		assert x.numRows == Data.D;
+//		assert x.numRows == Data.numDimensions;
 //		double logDet = 0;
-//		for(int k=0;k<Data.D;k++)
+//		for(int k=0;k<Data.numDimensions;k++)
 //		{
 //			double r = 0.5 * Math.log(L.get(k, k)*L.get(k, k) + x.get(k, 0)*x.get(k, 0));
 //			logDet = logDet + r;			
@@ -626,20 +705,20 @@ public class Util {
 //	public static void cholRank1UpdateUpper(DenseMatrix64F L, DenseMatrix64F x)
 //	{
 //		//L should be a square upper triangular matrix (although not checking for triangularity here explicitly)
-//		//Data.D = 2;
-//		assert L.numCols == Data.D;
-//		assert L.numRows == Data.D;
+//		//Data.numDimensions = 2;
+//		assert L.numCols == Data.numDimensions;
+//		assert L.numRows == Data.numDimensions;
 //		//x should be a vector
 //		assert x.numCols == 1;
-//		assert x.numRows == Data.D;
+//		assert x.numRows == Data.numDimensions;
 //		
-//		for(int k=0;k<Data.D;k++)
+//		for(int k=0;k<Data.numDimensions;k++)
 //		{
 //			double r = Math.sqrt(L.get(k, k)*L.get(k, k) + x.get(k, 0)*x.get(k, 0));
 //			double c = r/(double)L.get(k, k);
 //			double s = x.get(k, 0)/L.get(k, k);
 //			L.set(k, k, r);
-//			for(int l=k+1;l<Data.D;l++)
+//			for(int l=k+1;l<Data.numDimensions;l++)
 //			{
 //				double val = (L.get(k, l) + s*x.get(l, 0))/(double)c ;
 //				L.set(k, l, val);
