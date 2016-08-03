@@ -76,8 +76,8 @@
                             <id>gaussian_lda</id>
                             <mainClass>gaussian_lda.Main</mainClass>
                             <jvmArgs>
-                                <jvmArg>-Xms3g</jvmArg>
-                                <jvmArg>-Xmx3g</jvmArg>
+                                <jvmArg>-Xms30g</jvmArg>
+                                <jvmArg>-Xmx30g</jvmArg>
                                 <jvmArg>-XX:ParallelGCThreads=8</jvmArg>
                                  <jvmArg>-XX:+PrintGC</jvmArg>
                             </jvmArgs>
