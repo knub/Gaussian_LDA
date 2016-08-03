@@ -29,6 +29,7 @@ import data.Data;
  *
  * @author rajarshd
  */
+@SuppressWarnings({"Duplicates", "WeakerAccess", "SpellCheckingInspection", "unused"})
 public class GaussianLDAAlias implements Runnable {
 
 
@@ -58,7 +59,7 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * In the current iteration, map of table_id's to number of customers. ****Table id starts from 0.****
      */
-    private static HashMap<Integer, Integer> tableCounts = new HashMap<Integer, Integer>();
+    private static HashMap<Integer, Integer> tableCounts = new HashMap<>();
 
     /**
      * tableCountstableCountsPerDoc is a K X N array. tableCounts[i][j] represents how many words of document j are present in topic i.
@@ -81,18 +82,18 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * mean vector associated with each table in the current iteration. This is the bayesian mean (i.e has the prior part too)
      */
-    private static ArrayList<DenseMatrix64F> tableMeans = new ArrayList<DenseMatrix64F>();
+    private static ArrayList<DenseMatrix64F> tableMeans = new ArrayList<>();
 
 
     /**
      * Cholesky Lower Triangular Decomposition of covariance matrix associated with each table.
      */
-    private static ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat = new ArrayList<DenseMatrix64F>();
+    private static ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat = new ArrayList<>();
 
     /**
      * log-determinant of covariance matrix for each table. Since 0.5*logDet is required in (see logMultivariateTDensity), therefore that value is kept.
      */
-    private static ArrayList<Double> logDeterminants = new ArrayList<Double>();
+    private static ArrayList<Double> logDeterminants = new ArrayList<>();
 
     /**
      * current iteration counter
@@ -126,14 +127,11 @@ public class GaussianLDAAlias implements Runnable {
 
     public static boolean done = false;
 
+    @SuppressWarnings("FieldCanBeLocal")
     private static int MH_STEPS = 2;
 /************************************Member Declaration Ends***********************************/
     /**
      * updates params -- mean and the cholesky decomp of covariance matrix using rank1 update (customer added) or downdate (customer removed)
-     *
-     * @param tableId
-     * @param custId
-     * @param isRemoved
      */
     private static void updateTableParams(int tableId, int custId, boolean isRemoved) {
         int count = tableCounts.get(tableId);
@@ -206,7 +204,7 @@ public class GaussianLDAAlias implements Runnable {
             prior.nu_0 = Data.D;
         }
         //storing zeros in sumTableCustomers and later will keep on adding each customer. Also initialize tableInverseCovariances and determinants
-        double scaleTdistrn = (prior.k_0 + 1) / (double) (prior.k_0 * (prior.nu_0 - Data.D + 1));
+        double scaleTdistrn = (prior.k_0 + 1) / (prior.k_0 * (prior.nu_0 - Data.D + 1));
         for (int i = 0; i < K; i++) {
             DenseMatrix64F priorMean = new DenseMatrix64F(prior.mu_0);
             DenseMatrix64F initialCholesky = new DenseMatrix64F(CholSigma0);
@@ -225,7 +223,7 @@ public class GaussianLDAAlias implements Runnable {
         {
             ArrayList<Integer> doc = corpus.get(d);
             int wordCounter = 0;
-            tableAssignments.add(new ArrayList<Integer>());
+            tableAssignments.add(new ArrayList<>());
             for (int i : doc) //for each word in the document.
             {
                 int tableId = gen.nextInt(K);
@@ -243,10 +241,10 @@ public class GaussianLDAAlias implements Runnable {
         }
 //		Commenting this because, we have to update the table mean, covariances etc which is kinda hard. Previously we were calculating this before initializing the
 //		table params.
-//		//Now some tables might be empty because of random initialization. But since we need continuous table indexes therefore I am going to make them continuous		
+//		//Now some tables might be empty because of random initialization. But since we need continuous table indexes therefore I am going to make them continuous
 //		ArrayList<Integer> emptyTables = new ArrayList<Integer>();
-//		for(int i=0;i<K;i++)		
-//			if(!tableCounts.containsKey(i))			
+//		for(int i=0;i<K;i++)
+//			if(!tableCounts.containsKey(i))
 //				emptyTables.add(i);
 //		if(emptyTables.size()>0) //empty tables found
 //		{
@@ -257,7 +255,7 @@ public class GaussianLDAAlias implements Runnable {
 //				{
 //					int targetTableId = emptyTables.get(start);
 //					tableCounts.put(targetTableId, tableCounts.get(K-1));
-//					
+//
 //					//This is going to be expensive, go over the tableAssignments datastructure and change the asssignment of those who were assigned to K-1 to targetTableId
 //					for(ArrayList<Integer> doc:tableAssignments)
 //					{
@@ -270,14 +268,14 @@ public class GaussianLDAAlias implements Runnable {
 //						}
 //					}
 //					tableCounts.remove(K-1);
-//					start++; //incrementing start to point at the next table					
+//					start++; //incrementing start to point at the next table
 //				}
-//				else				
+//				else
 //					end--; //this condition means that the last of the remaining table is empty, hence safely ignoring
-//				
+//
 //				K = K - 1;
 //			}
-//		}		
+//		}
         //double check again
         for (int i = 0; i < K; i++)
             if (!tableCounts.containsKey(i)) {
@@ -297,7 +295,6 @@ public class GaussianLDAAlias implements Runnable {
     }
 
     private static double logMultivariateTDensity(DenseMatrix64F x, int tableId) {
-        double logprob = 0.0;
         int count = tableCounts.get(tableId);
         double k_n = prior.k_0 + count;
         double nu_n = prior.nu_0 + count;
@@ -318,7 +315,8 @@ public class GaussianLDAAlias implements Runnable {
         DenseMatrix64F mul = new DenseMatrix64F(1, 1);
         CommonOps.mult(x_minus_mu_T, x_minus_mu, mul);
         double val = mul.get(0, 0);
-        logprob = Gamma.logGamma((nu + Data.D) / 2) - (Gamma.logGamma(nu / 2) + Data.D / 2 * (Math.log(nu) + Math.log(Math.PI)) + logDeterminants.get(tableId) + (nu + Data.D) / 2 * Math.log(1 + val / nu));
+        //noinspection UnnecessaryLocalVariable
+        double logprob = Gamma.logGamma((nu + Data.D) / 2) - (Gamma.logGamma(nu / 2) + Data.D / 2 * (Math.log(nu) + Math.log(Math.PI)) + logDeterminants.get(tableId) + (nu + Data.D) / 2 * Math.log(1 + val / nu));
         return logprob;
     }
 
@@ -337,17 +335,8 @@ public class GaussianLDAAlias implements Runnable {
      * @throws IOException
      */
     private static void sample() throws IOException {
-        BufferedWriter out = null;
-        try {
-            out = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
@@ -368,8 +357,8 @@ public class GaussianLDAAlias implements Runnable {
                     //now recalculate table parameters for this table
                     updateTableParams(oldTableId, custId, true);
                     //Now calculate the prior and likelihood for the customer to sit in each table and sample.
-                    ArrayList<Double> posterior = new ArrayList<Double>();
-                    ArrayList<Integer> nonZeroTopicIndex = new ArrayList<Integer>();
+                    ArrayList<Double> posterior = new ArrayList<>();
+                    ArrayList<Integer> nonZeroTopicIndex = new ArrayList<>();
                     Double max = Double.NEGATIVE_INFINITY;
                     double pSum = 0;
                     //go over each table
@@ -470,10 +459,6 @@ public class GaussianLDAAlias implements Runnable {
         }
     }
 
-    public static void getTopWordsPerTopic() {
-
-    }
-
     public static ArrayList<DenseMatrix64F> getTableMeans() {
         return tableMeans;
     }
@@ -482,20 +467,14 @@ public class GaussianLDAAlias implements Runnable {
         return tableCholeskyLTriangularMat;
     }
 
-    /**
-     * @param args
-     * @throws IOException
-     */
     public static void main(String[] args) throws IOException {
         // TODO Auto-generated method stub
         long startTime = System.currentTimeMillis();
         //Get the input file given as input
-        String inputFile = args[0];
-        Data.inputFileName = inputFile;
+        Data.inputFileName = args[0];
         //First set the dimension of data which user has given input
         int D = Integer.parseInt(args[1]);
         numIterations = Integer.parseInt(args[2]);
-        ;
         Data.D = D;
         //read the initial number of clusters for k-means
         K = Integer.parseInt(args[3]);
@@ -530,7 +509,7 @@ public class GaussianLDAAlias implements Runnable {
             System.exit(1);
         }
         //Now initialize each datapoint (customer)
-        tableAssignments = new ArrayList<ArrayList<Integer>>();
+        tableAssignments = new ArrayList<>();
         tableCountsPerDoc = new int[K][N];
 
         q = new VoseAlias[Data.numVectors];
@@ -545,11 +524,7 @@ public class GaussianLDAAlias implements Runnable {
                     new FileOutputStream(dirName + "run_log.txt"), "UTF-8"));
             perplexities = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream(dirName + "avgLL.txt"), "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
+        } catch (UnsupportedEncodingException | FileNotFoundException e) {
             e.printStackTrace();
         }
         /**************** Initialize ***********/
