@@ -247,7 +247,6 @@ public class Util {
                     covariance[j][k]= covar.get(j, k);
                 }
             }
-            // do stuff row-wise
             MultivariateNormalDistributionApproximation nd = new MultivariateNormalDistributionApproximation(mean.getData(), covariance);
 
             int TOP_WORDS = 10;

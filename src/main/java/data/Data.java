@@ -105,7 +105,7 @@ public class Data {
             }
             lineNr += 1;
         }
-        return corpus.subList(0, 100);
+        return corpus.subList(0, 3000);
 
 //		try
 //		{
