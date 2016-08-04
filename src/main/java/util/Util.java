@@ -287,7 +287,7 @@ public class Util {
     public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName, int currentIteration) throws IOException {
         for (int i = 0; i < K; i++) {
             BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(String.format("%sgaussians-%03d.txt", dirName, currentIteration), false), "UTF-8"));
+                    new FileOutputStream(String.format("%sgaussian-%03d.parameters", dirName, currentIteration), false), "UTF-8"));
             //first write the mean
             for (int l = 0; l < tableMeans.get(i).numRows; l++)
                 output.write(tableMeans.get(i).get(l, 0) + " ");
