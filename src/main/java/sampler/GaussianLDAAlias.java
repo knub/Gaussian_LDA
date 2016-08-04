@@ -13,10 +13,7 @@ import util.Util;
 import util.VoseAlias;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 
 /**
@@ -37,7 +34,7 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * The corpus of documents
      */
-    private static ArrayList<ArrayList<Integer>> corpus;
+    private static List<ArrayList<Integer>> corpus;
     /**
      * Number of iterations of Gibbs sweep
      */

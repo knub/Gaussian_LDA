@@ -2,14 +2,8 @@ package data;
 
 import java.io.*;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.ejml.data.DenseMatrix64F;
 
@@ -67,7 +61,7 @@ public class Data {
         return data;
     }
 
-    public static ArrayList<ArrayList<Integer>> readCorpus(String inputCorpusName) throws IOException {
+    public static List<ArrayList<Integer>> readCorpus(String inputCorpusName) throws IOException {
         BufferedReader reader =
                 new BufferedReader(
                         new InputStreamReader(new FileInputStream(inputCorpusName), "UTF-8"));
@@ -75,7 +69,6 @@ public class Data {
         int lineNr = 0;
         int docId = 0;
         ArrayList<Integer> document = new ArrayList<>();
-
 
         // for all documents
         for (String line; (line = reader.readLine()) != null; ) {
@@ -101,7 +94,7 @@ public class Data {
             }
             lineNr += 1;
         }
-        return corpus;
+        return corpus.subList(0, 3000);
 
 //		try
 //		{

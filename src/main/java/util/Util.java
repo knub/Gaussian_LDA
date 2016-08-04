@@ -357,7 +357,7 @@ public class Util {
      * calculates corpus perplexity (avg. log-likelihood)
      *
      */
-    public static double calculateAvgLL(ArrayList<ArrayList<Integer>> corpus, ArrayList<ArrayList<Integer>> tableAssignments,
+    public static double calculateAvgLL(List<ArrayList<Integer>> corpus, ArrayList<ArrayList<Integer>> tableAssignments,
                                         DenseMatrix64F[] dataVectors, ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, int N, NormalInverseWishart prior, int[][] tableCountsPerDoc) {
         //first divide the cholesky's by the scale term
         //but before that calculate the number of words sitting in each table
