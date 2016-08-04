@@ -227,7 +227,6 @@ public class Util {
         System.out.println("Calculating topics");
         PrintWriter output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(String.format("%sgaussian-%03d.topics", dirName, iteration)), StandardCharsets.UTF_8), true);
         for (int i = 0; i < K; i++) {
-            System.out.println("Topic " + i);
             DenseMatrix64F mean = tableMeans.get(i);
             assert mean.numRows == 200 : "there should be 50 rows instead of " + mean.numRows;
             assert mean.numCols == 1 : "there should be 1 column instead of " + mean.numCols;
@@ -257,7 +256,6 @@ public class Util {
                 DenseMatrix64F vector = dataVectors[l];
                 double currentProb = nd.density(vector.data);
                 if (queue.size() < TOP_WORDS) {
-                    System.out.println(String.format("Adding %d with prob %f", l, currentProb));
                     queue.add(new WordProb(l, currentProb));
                     continue;
                 }
