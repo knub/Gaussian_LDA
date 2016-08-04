@@ -94,6 +94,14 @@
                                  <!-- <jvmArg>-XX:+PrintGC</jvmArg> -->
                             </jvmArgs>
                         </launcher>
+                        <launcher>
+                            <id>translation</id>
+                            <mainClass>gaussian_lda.TranslationMain</mainClass>
+                            <jvmArgs>
+                                <jvmArg>-Xms3g</jvmArg>
+                                <jvmArg>-Xmx3g</jvmArg>
+                            </jvmArgs>
+                        </launcher>
                     </launchers>
                 </configuration>
                 <executions>
