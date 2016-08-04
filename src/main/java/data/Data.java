@@ -27,10 +27,19 @@ public class Data {
     public static int numVectors;
 
 
+    public static class WordEmbeddingData {
+        public DenseMatrix64F embeddings;
+        public List<String> words;
+
+        public WordEmbeddingData(DenseMatrix64F embeddings, List<String> words) {
+            this.embeddings = embeddings;
+            this.words = words;
+        }
+    }
     /**
      *
      */
-    public static DenseMatrix64F readData() throws IOException {
+    public static WordEmbeddingData readWordEmbeddings() throws IOException {
         BufferedReader reader =
                 new BufferedReader(
                         new InputStreamReader(new FileInputStream(inputFileName), "UTF-8"));
@@ -41,6 +50,7 @@ public class Data {
         reader.close();
         numVectors = lines.size();
         DenseMatrix64F data = new DenseMatrix64F(numVectors, numDimensions); //initialize the data matrix
+        List<String> words = new ArrayList<>(numVectors);
         //now populate the matrix
         for (int i = 0; i < lines.size(); i++) {
             String vector = lines.get(i);
@@ -54,11 +64,12 @@ public class Data {
                     data.set(i, j, dVal);
                     j++;
                 } else {
+                    words.add(val);
                     first = false;
                 }
             }
         }
-        return data;
+        return new WordEmbeddingData(data, words);
     }
 
     public static List<ArrayList<Integer>> readCorpus(String inputCorpusName) throws IOException {

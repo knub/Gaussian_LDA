@@ -220,12 +220,12 @@ public class Util {
         }
     }
 
-    public static void printTopics(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, DenseMatrix64F[] dataVectors, int K, String dirName, int iteration) throws IOException {
+    public static void printTopics(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, DenseMatrix64F[] dataVectors, List<String> words, int K, String dirName, int iteration) throws IOException {
         System.out.println("Starting printTopics: " + new Date());
         assert dataVectors[0].numRows == 200 : "dataVectors nr rows should be 200 and not " + dataVectors[0].numRows;
         assert dataVectors[0].numCols == 1 : "dataVectors nr cols should be 1 and not " + dataVectors[0].numCols;
         System.out.println("Calculating topics");
-        PrintWriter output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(String.format("%sgaussian-%03d.id-topics", dirName, iteration)), StandardCharsets.UTF_8), true);
+        PrintWriter output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(String.format("%sgaussian-%03d.topics", dirName, iteration)), StandardCharsets.UTF_8), true);
         for (int i = 0; i < K; i++) {
             System.out.println("Topic " + i);
             DenseMatrix64F mean = tableMeans.get(i);
@@ -270,9 +270,9 @@ public class Util {
                 }
            }
 
-            output.print(queue.remove().wordId);
+            output.print(words.get(queue.remove().wordId));
             while (queue.size() > 0) {
-                output.print(" " + queue.remove().wordId);
+                output.print(" " + words.get(queue.remove().wordId));
             }
             output.write("\n");
             output.flush();

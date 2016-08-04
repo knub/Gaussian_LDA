@@ -29,7 +29,12 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * The embedding associated with each word of the vocab.
      */
-    private static DenseMatrix64F[] dataVectors;
+    private static DenseMatrix64F[] wordEmbeddings;
+
+    /**
+     * The embedding associated with each word of the vocab.
+     */
+    private static List<String> words;
 
     /**
      * The corpus of documents
@@ -134,7 +139,7 @@ public class GaussianLDAAlias implements Runnable {
              * Note here \mu_n will be the mean before updating. After updating sigma_n, we will update \mu_n.
              */
             DenseMatrix64F x = new DenseMatrix64F(Data.numDimensions, 1);
-            CommonOps.sub(dataVectors[custId], tableMeans.get(tableId), x); //calculate (X_{n} - \mu_{n-1})
+            CommonOps.sub(wordEmbeddings[custId], tableMeans.get(tableId), x); //calculate (X_{n} - \mu_{n-1})
             double coeff = Math.sqrt((k_n + 1) / k_n);
             CommonOps.scale(coeff, x);
             Util.cholRank1Downdate(oldLTriangularDecomp, x);
@@ -142,7 +147,7 @@ public class GaussianLDAAlias implements Runnable {
             //updateMean(tableId);
             DenseMatrix64F newMean = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.scale(k_n + 1, tableMeans.get(tableId), newMean);
-            CommonOps.subEquals(newMean, dataVectors[custId]);
+            CommonOps.subEquals(newMean, wordEmbeddings[custId]);
             CommonOps.divide(k_n, newMean);
             tableMeans.set(tableId, newMean);
 
@@ -150,7 +155,7 @@ public class GaussianLDAAlias implements Runnable {
         {
             DenseMatrix64F newMean = new DenseMatrix64F(Data.numDimensions, 1);
             CommonOps.scale(k_n - 1, tableMeans.get(tableId), newMean);
-            CommonOps.addEquals(newMean, dataVectors[custId]);
+            CommonOps.addEquals(newMean, wordEmbeddings[custId]);
             CommonOps.divide(k_n, newMean);
             tableMeans.set(tableId, newMean);
             /**
@@ -158,7 +163,7 @@ public class GaussianLDAAlias implements Runnable {
              * \Sigma_{n+1} = \Sigma_{n} + (k_0 + n + 1)/(k_0 + n) * (x_{n+1} - \mu_{n+1})(x_{n+1} - \mu_{n+1})^T
              */
             DenseMatrix64F x = new DenseMatrix64F(Data.numDimensions, 1);
-            CommonOps.sub(dataVectors[custId], tableMeans.get(tableId), x); //calculate (X_{n} - \mu_{n-1})
+            CommonOps.sub(wordEmbeddings[custId], tableMeans.get(tableId), x); //calculate (X_{n} - \mu_{n-1})
             double coeff = Math.sqrt(k_n / (k_n - 1));
             CommonOps.scale(coeff, x);
             Util.cholRank1Update(oldLTriangularDecomp, x);
@@ -270,7 +275,7 @@ public class GaussianLDAAlias implements Runnable {
 
         System.out.println("Initialization complete");
         //calculate initial avg ll
-        double avgLL = Util.calculateAvgLL(corpus, topicAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
+        double avgLL = Util.calculateAvgLL(corpus, topicAssignments, wordEmbeddings, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
         System.out.println("Average ll at the begining " + avgLL);
     }
 
@@ -351,7 +356,7 @@ public class GaussianLDAAlias implements Runnable {
                         if (tableCountsPerDoc[k][d] > 0) {
                             //Now calculate the likelihood
                             //double count = tableCountsPerDoc[k][d]+alpha;//here count is the number of words of the same doc which are sitting in the same topic.
-                            double logLikelihood = logMultivariateTDensity(dataVectors[custId], k);
+                            double logLikelihood = logMultivariateTDensity(wordEmbeddings[custId], k);
                             //System.out.println(custId+" "+k+" "+logLikelihood);
                             //add log prior in the posterior vector
                             //double logPosterior = Math.log(count) + logLikelihood;
@@ -391,8 +396,8 @@ public class GaussianLDAAlias implements Runnable {
 
                         if (oldTableId != newTableId) {
                             //2. Find acceptance probability
-                            double temp_old = logMultivariateTDensity(dataVectors[custId], oldTableId);
-                            double temp_new = logMultivariateTDensity(dataVectors[custId], newTableId);
+                            double temp_old = logMultivariateTDensity(wordEmbeddings[custId], oldTableId);
+                            double temp_new = logMultivariateTDensity(wordEmbeddings[custId], newTableId);
                             double acceptance = (tableCountsPerDoc[newTableId][d] + alpha) / (tableCountsPerDoc[oldTableId][d] + alpha)
                                     * Math.exp(temp_new - temp_old)
                                     * (tableCountsPerDoc[oldTableId][d] * temp_old + alpha * q[custId].w[oldTableId])
@@ -416,10 +421,10 @@ public class GaussianLDAAlias implements Runnable {
             System.out.println(String.format("Finished iteration %d in %d s", currentIteration, elapsedTime));
 
             //calculate perplexity
-            double avgLL = Util.calculateAvgLL(corpus, topicAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
+            double avgLL = Util.calculateAvgLL(corpus, topicAssignments, wordEmbeddings, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
             System.out.println("Avg log-likelihood: " + avgLL);
             Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName, currentIteration + 1);
-            Util.printTopics(tableMeans, tableCholeskyLTriangularMat, dataVectors, numTopics, dirName, currentIteration + 1);
+            Util.printTopics(tableMeans, tableCholeskyLTriangularMat, wordEmbeddings, words, numTopics, dirName, currentIteration + 1);
         }
         done = true;
         System.out.println("Waiting for joining thread");
@@ -441,9 +446,11 @@ public class GaussianLDAAlias implements Runnable {
         //read the vocab and the cluster file
         dirName = args[4];
         //Read data vectors into matrix from file
-        DenseMatrix64F data = Data.readData();
-        dataVectors = new DenseMatrix64F[data.numRows]; //splitting into vectors
-        CommonOps.rowsToVector(data, dataVectors);
+        Data.WordEmbeddingData wordEmbeddingData = Data.readWordEmbeddings();
+        DenseMatrix64F data = wordEmbeddingData.embeddings;
+        wordEmbeddings = new DenseMatrix64F[data.numRows]; //splitting into vectors
+        CommonOps.rowsToVector(data, wordEmbeddings);
+        words = wordEmbeddingData.words;
         System.out.println("Total number of vectors are " + data.numRows);
         //Read corpus
         String inputCorpusFile = args[5];
@@ -453,7 +460,7 @@ public class GaussianLDAAlias implements Runnable {
         System.out.println("Total number of documents are " + numDocuments);
         //initialize the prior
         prior = new NormalInverseWishart();
-        prior.mu_0 = Util.getSampleMean(dataVectors);
+        prior.mu_0 = Util.getSampleMean(wordEmbeddings);
         //prior.mu_0 = new DenseMatrix64F(Data.numDimensions,1);//init to zeros
         prior.nu_0 = Data.numDimensions; //initializing to the dimension
         prior.sigma_0 = CommonOps.identity(Data.numDimensions); //setting as the identity matrix
@@ -511,7 +518,7 @@ public class GaussianLDAAlias implements Runnable {
                     }
                     double max = Double.NEGATIVE_INFINITY;
                     for (int k = 0; k < numTopics; k++) {
-                        double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
+                        double logLikelihood = logMultivariateTDensity(wordEmbeddings[w], k);
                         //posterior.add(logLikelihood);
                         temp.w[k] = logLikelihood;
                         if (logLikelihood > max)
@@ -545,7 +552,7 @@ public class GaussianLDAAlias implements Runnable {
         for (int w = 0; w < Data.numVectors; ++w) {
             double max = Double.NEGATIVE_INFINITY;
             for (int k = 0; k < numTopics; k++) {
-                double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
+                double logLikelihood = logMultivariateTDensity(wordEmbeddings[w], k);
                 //posterior.add(logLikelihood);
                 temp.w[k] = logLikelihood;
                 if (logLikelihood > max)
