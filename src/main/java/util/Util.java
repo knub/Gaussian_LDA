@@ -225,7 +225,7 @@ public class Util {
         assert dataVectors[0].numRows == 200 : "dataVectors nr rows should be 200 and not " + dataVectors[0].numRows;
         assert dataVectors[0].numCols == 1 : "dataVectors nr cols should be 1 and not " + dataVectors[0].numCols;
         System.out.println("Calculating topics");
-        PrintWriter output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(String.format("%sgaussian-%03d.topics", dirName, iteration)), StandardCharsets.UTF_8), true);
+        PrintWriter output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(String.format("%sgaussian-%03d.id-topics", dirName, iteration)), StandardCharsets.UTF_8), true);
         for (int i = 0; i < K; i++) {
             System.out.println("Topic " + i);
             DenseMatrix64F mean = tableMeans.get(i);
@@ -249,14 +249,14 @@ public class Util {
                 }
             }
             // do stuff row-wise
-            MultivariateNormalDistribution nd = new MultivariateNormalDistribution(mean.getData(), covariance);
+            MultivariateNormalDistributionApproximation nd = new MultivariateNormalDistributionApproximation(mean.getData(), covariance);
 
             int TOP_WORDS = 10;
             PriorityQueue<WordProb> queue = new PriorityQueue<>(TOP_WORDS, new WordProbComparator());
             for (int l = 0; l < dataVectors.length; l += 1) {
                 DenseMatrix64F vector = dataVectors[l];
                 double currentProb = nd.density(vector.data);
-                if (queue.size() <= TOP_WORDS) {
+                if (queue.size() < TOP_WORDS) {
                     System.out.println(String.format("Adding %d with prob %f", l, currentProb));
                     queue.add(new WordProb(l, currentProb));
                     continue;
@@ -266,6 +266,7 @@ public class Util {
                     WordProb removedWordProb = queue.remove();
                     assert removedWordProb.prob == leastProb : "least element should be removed";
                     queue.add(new WordProb(l, currentProb));
+                    assert queue.size() == 10 : "queue size should be 10 and not " + queue.size();
                 }
            }
 
@@ -274,6 +275,7 @@ public class Util {
                 output.print(" " + queue.remove().wordId);
             }
             output.write("\n");
+            output.flush();
         }
         output.close();
         System.out.println("Finishing printTopics: " + new Date());

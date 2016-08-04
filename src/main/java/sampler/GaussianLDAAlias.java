@@ -322,7 +322,6 @@ public class GaussianLDAAlias implements Runnable {
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
-        System.out.println("Free Memory: " + FreeMemory.get(false, 0) + " MB");
         for (int currentIteration = 0; currentIteration < numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
             long last1000Time = System.currentTimeMillis();
@@ -422,10 +421,8 @@ public class GaussianLDAAlias implements Runnable {
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, topicAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, numTopics, numDocuments, prior, tableCountsPerDoc);
             System.out.println("Avg log-likelihood: " + avgLL);
-            System.out.println("Print gaussians " + new Date());
-            Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName, currentIteration);
-            System.out.println("Finished printing gaussians " + new Date());
-//            Util.printTopics(tableMeans, tableCholeskyLTriangularMat, dataVectors, numTopics, dirName, currentIteration);
+            Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName, currentIteration + 1);
+            Util.printTopics(tableMeans, tableCholeskyLTriangularMat, dataVectors, numTopics, dirName, currentIteration + 1);
         }
         done = true;
         System.out.println("Waiting for joining thread");
@@ -495,7 +492,7 @@ public class GaussianLDAAlias implements Runnable {
         long elapsedTime = (stopTime - startTime) / 1000;
         System.out.println(String.format("Done in %d s, %d min", elapsedTime, elapsedTime / 60));
         System.out.println("Printing the distributions");
-        Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName, numIterations);
+//        Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, numTopics, dirName, numIterations);
         Util.printDocumentTopicDistribution(tableCountsPerDoc, numDocuments, numTopics, dirName, alpha);
         Util.printTopicAssignments(topicAssignments, dirName);
         Util.printNumCustomersPerTopic(tableCountsPerDoc, dirName, numTopics, numDocuments);
@@ -511,7 +508,10 @@ public class GaussianLDAAlias implements Runnable {
             //temp.init_temp();
             do {
                 for (int w = 0; w < Data.numVectors; ++w) {
-                    pw.println(new Date().toString() + w);
+                    if (w % 1000 == 0) {
+                        pw.println(new Date().toString() + ": " + w + "/" + Data.numVectors);
+                        pw.flush();
+                    }
                     double max = Double.NEGATIVE_INFINITY;
                     for (int k = 0; k < numTopics; k++) {
                         double logLikelihood = logMultivariateTDensity(dataVectors[w], k);
