@@ -216,7 +216,8 @@ public class Util {
     static class WordProbComparator implements Comparator<WordProb> {
         @Override
         public int compare(WordProb wp1, WordProb wp2) {
-            return (int) FastMath.signum(wp1.prob - wp2.prob);
+            return Double.compare(wp1.prob, wp2.prob);
+//            return (int) FastMath.signum(wp1.prob - wp2.prob);
         }
     }
 
@@ -250,27 +251,26 @@ public class Util {
             MultivariateNormalDistributionApproximation nd = new MultivariateNormalDistributionApproximation(mean.getData(), covariance);
 
             int TOP_WORDS = 10;
-            PriorityQueue<WordProb> queue = new PriorityQueue<>(TOP_WORDS, new WordProbComparator());
+            List<WordProb> queue = new ArrayList<>();
             for (int l = 0; l < dataVectors.length; l += 1) {
                 DenseMatrix64F vector = dataVectors[l];
                 double currentProb = nd.density(vector.data);
-                if (queue.size() < TOP_WORDS) {
-                    queue.add(new WordProb(l, currentProb));
-                    continue;
-                }
-                double leastProb = queue.peek().prob;
-                if (leastProb < currentProb) {
-                    WordProb removedWordProb = queue.remove();
-                    assert removedWordProb.prob == leastProb : "least element should be removed";
-                    queue.add(new WordProb(l, currentProb));
-                    assert queue.size() == 10 : "queue size should be 10 and not " + queue.size();
-                }
+                queue.add(new WordProb(l, currentProb));
            }
 
-            output.print(words.get(queue.remove().wordId));
-            while (queue.size() > 0) {
-                output.print(" " + words.get(queue.remove().wordId));
+            queue.sort(new WordProbComparator());
+            assert queue.get(0).prob == queue.stream().mapToDouble(o -> o.prob).min().getAsDouble();
+            assert queue.get(queue.size() - 1).prob == queue.stream().mapToDouble(o -> o.prob).max().getAsDouble();
+            for (int m = 0; m < TOP_WORDS; m += 1) {
+                if (m == 0) {
+                    output.print(words.get(queue.get(queue.size() - 1 - m).wordId));
+                } else {
+                    output.print(" " + words.get(queue.get(queue.size() - 1 - m).wordId));
+                }
             }
+//            output.print(words.get(queue.remove().wordId));
+//            while (queue.size() > 0) {
+//            }
             output.write("\n");
             output.flush();
         }
