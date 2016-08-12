@@ -33,6 +33,16 @@ import data.Data;
 public class Util {
 
 
+    private final String dirName;
+    private final int N;
+    private final int K;
+
+    public Util(String dirName, int N, int K) {
+        this.dirName = dirName;
+        this.N = N;
+        this.K = K;
+
+    }
     /**
      * This function computes the lower triangular cholesky decomposition L' of matrix A' from L (the cholesky decomp of A) where
      * A' = A + x*x^T.
@@ -227,10 +237,11 @@ public class Util {
     /**
      * Prints the multivariate distributions (the word|topic distribution)
      */
-    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName) throws IOException {
+    public void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat,
+                               int currentIteration) throws IOException {
         for (int i = 0; i < K; i++) {
             BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + i + ".txt", true), "UTF-8"));
+                    new FileOutputStream(String.format("%s%03d.%02d.gaussians", dirName, currentIteration, i), true), "UTF-8"));
             //first write the mean
             for (int l = 0; l < tableMeans.get(i).numRows; l++)
                 output.write(tableMeans.get(i).get(l, 0) + " ");
@@ -253,9 +264,9 @@ public class Util {
         }
     }
 
-    public static void printNumCustomersPerTopic(int[][] tableCountsPerDoc, String dirName, int K, int N) throws IOException {
+    public void printNumCustomersPerTopic(int[][] tableCountsPerDoc, int currentIteration) throws IOException {
         BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(dirName + "topic_counts" + ".txt", true), "UTF-8"));
+                new FileOutputStream(String.format("%s%03d.topic-counts", dirName, currentIteration), true), "UTF-8"));
         for (int k = 0; k < K; k++) {
             int n_k = 0;
             for (int n = 0; n < N; n++)
@@ -265,12 +276,12 @@ public class Util {
         output.close();
     }
 
-    public static void printDocumentTopicDistribution(int[][] tableCountsPerDoc, int numDocs, int K, String dirName, double alpha) throws IOException {
+    public void printDocumentTopicDistribution(int[][] tableCountsPerDoc, double alpha, int currentIteration) throws IOException {
         //for each document, print the normalized count
         BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(dirName + "document_topic" + ".txt", true), "UTF-8"));
-        System.out.println(numDocs);
-        for (int i = 0; i < numDocs; i++) {
+                new FileOutputStream(String.format("%s%03d.document-topic", dirName, currentIteration), true), "UTF-8"));
+        System.out.println(N);
+        for (int i = 0; i < N; i++) {
             double sum = 0;
             for (int k = 0; k < K; k++)
                 sum += tableCountsPerDoc[k][i];
@@ -281,9 +292,9 @@ public class Util {
         output.close();
     }
 
-    public static void printTableAssignments(ArrayList<ArrayList<Integer>> tableAssignments, String dirName) throws IOException {
+    public void printTableAssignments(ArrayList<ArrayList<Integer>> tableAssignments, int currentIteration) throws IOException {
         BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(dirName + "table_assignments" + ".txt", true), "UTF-8"));
+                new FileOutputStream(String.format("%s%03d.topic-assignments", dirName, currentIteration), true), "UTF-8"));
         for (int i = 0; i < tableAssignments.size(); i++) {
             ArrayList<Integer> eachDoc = tableAssignments.get(i);
             for (int assignment : eachDoc)
@@ -293,13 +304,6 @@ public class Util {
         output.close();
     }
 
-    /**
-     * calculates corpus perplexity (avg. log-likelihood)
-     *
-     * @param tableAssignments
-     * @param tableMeans
-     * @param tableCholeskyLTriangularMat
-     */
     public static double calculateAvgLL(List<ArrayList<Integer>> corpus, ArrayList<ArrayList<Integer>> tableAssignments,
                                         DenseMatrix64F[] dataVectors, ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, int N, NormalInverseWishart prior, int[][] tableCountsPerDoc) {
         //first divide the cholesky's by the scale term

@@ -279,7 +279,7 @@ public class GaussianLDAAlias implements Runnable {
         return logprob;
     }
 
-    private static void sample() throws IOException, InterruptedException {
+    private static void sample(Util writer) throws IOException, InterruptedException {
         BufferedWriter out = null;
         out = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
@@ -379,11 +379,17 @@ public class GaussianLDAAlias implements Runnable {
             //Printing stuffs now
             long stopTime = System.currentTimeMillis();
             double elapsedTime = (stopTime - startTime) / (double) 1000;
-            System.out.println(String.format("Iteration completed: %d in %d s", currentIteration, elapsedTime));
+            System.out.println(String.format("Iteration completed: %d in %.0f s", currentIteration, elapsedTime));
 
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
             System.out.println("Avg log-likelihood at the end of iteration " + currentIteration + " is " + avgLL);
+
+
+            writer.printGaussians(tableMeans, tableCholeskyLTriangularMat, currentIteration);
+            writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, currentIteration);
+            writer.printTableAssignments(tableAssignments, currentIteration);
+            writer.printNumCustomersPerTopic(tableCountsPerDoc, currentIteration);
         }
         done = true;
         t1.join();
@@ -456,21 +462,19 @@ public class GaussianLDAAlias implements Runnable {
             q[w].init(K);
         }
 
+        Util writer = new Util(dirName, N, K);
+
         /**************** Initialize ***********/
         System.out.println("Starting to initialize");
         initialize();
         System.out.println("Gibbs sampler will run for " + numIterations + " iterations");
         /******sample*********/
-        sample();
+        sample(writer);
         long stopTime = System.currentTimeMillis();
         double elapsedTime = (stopTime - startTime) / (double) 1000;
         System.out.println("Time taken " + elapsedTime);
 
         System.out.println("Printing the distributions");
-        Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, K, dirName);
-        Util.printDocumentTopicDistribution(tableCountsPerDoc, N, K, dirName, alpha);
-        Util.printTableAssignments(tableAssignments, dirName);
-        Util.printNumCustomersPerTopic(tableCountsPerDoc, dirName, K, N);
         System.out.println("Done");
     }
 
