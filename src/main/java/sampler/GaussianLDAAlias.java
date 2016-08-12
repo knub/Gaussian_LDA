@@ -239,43 +239,6 @@ public class GaussianLDAAlias implements Runnable {
                 wordCounter++;
             }
         }
-//		Commenting this because, we have to update the table mean, covariances etc which is kinda hard. Previously we were calculating this before initializing the
-//		table params.
-//		//Now some tables might be empty because of random initialization. But since we need continuous table indexes therefore I am going to make them continuous		
-//		ArrayList<Integer> emptyTables = new ArrayList<Integer>();
-//		for(int i=0;i<K;i++)		
-//			if(!tableCounts.containsKey(i))			
-//				emptyTables.add(i);
-//		if(emptyTables.size()>0) //empty tables found
-//		{
-//			int start = 0, end = emptyTables.size()-1;
-//			while(start <= end)
-//			{
-//				if(tableCounts.containsKey(K-1))//shift the contents of the last table to the first table which is non empty
-//				{
-//					int targetTableId = emptyTables.get(start);
-//					tableCounts.put(targetTableId, tableCounts.get(K-1));
-//					
-//					//This is going to be expensive, go over the tableAssignments datastructure and change the asssignment of those who were assigned to K-1 to targetTableId
-//					for(ArrayList<Integer> doc:tableAssignments)
-//					{
-//						int counter = 0;
-//						for(int tableAssignment:doc)
-//						{
-//							if(tableAssignment == K-1)
-//								doc.set(counter, targetTableId);
-//							counter++;
-//						}
-//					}
-//					tableCounts.remove(K-1);
-//					start++; //incrementing start to point at the next table					
-//				}
-//				else				
-//					end--; //this condition means that the last of the remaining table is empty, hence safely ignoring
-//				
-//				K = K - 1;
-//			}
-//		}		
         //double check again
         for (int i = 0; i < K; i++)
             if (!tableCounts.containsKey(i)) {
@@ -315,20 +278,6 @@ public class GaussianLDAAlias implements Runnable {
         return logprob;
     }
 
-    /**
-     * for num_iters:
-     * for each customer
-     * remove him from his old_table and update the table params.
-     * if old_table is empty:
-     * remove table
-     * Calculate prior and likelihood for this customer sitting at each table
-     * sample for a table index
-     * if new_table is equal to old_table
-     * don't have to update the parameters
-     * else update params of the old table.
-     *
-     * @throws IOException
-     */
     private static void sample() throws IOException {
         BufferedWriter out = null;
         try {
