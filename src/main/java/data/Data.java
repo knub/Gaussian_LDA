@@ -68,7 +68,7 @@ public class Data {
             corpus.add(doc);
         }
         reader.close();
-        return corpus.subList(0, 100);
+        return corpus;
     }
 
 
