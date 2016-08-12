@@ -234,6 +234,72 @@ public class Util {
         return sampleCovariance;
     }
 
+    class WordProb {
+        public int wordId;
+        double prob;
+
+        public WordProb(int wordId, double prob) {
+            this.wordId = wordId;
+            this.prob = prob;
+        }
+    }
+    public class WordProbComparator implements Comparator<WordProb> {
+        public int compare(WordProb p1, WordProb p2) {
+            if (p1.prob < p2.prob) return -1;
+            if (p1.prob > p2.prob) return 1;
+            return 0;
+        }
+    }
+
+
+    public void printTopWords(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat,
+                              DenseMatrix64F[] dataVectors, List<String> vocabulary, int currentIteration) throws IOException {
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(String.format("%s%03d.topics", dirName, currentIteration), true), "UTF-8"));
+        for (int k = 0; k < K; k++) {
+            DenseMatrix64F means = tableMeans.get(k);
+
+            DenseMatrix64F chol = tableCholeskyLTriangularMat.get(k);
+            DenseMatrix64F cholT = new DenseMatrix64F(chol.numRows, chol.numCols);
+            CommonOps.transpose(chol, cholT);
+            DenseMatrix64F covar = new DenseMatrix64F(chol.numRows, chol.numCols);
+            CommonOps.mult(chol, cholT, covar);
+
+
+            double[][] covariance = new double[200][200];
+            for (int i = 0; i < covar.numRows; i += 1) {
+                for (int j = 0; j < covar.numCols; j += 1) {
+                    covariance[i][j] = covar.get(i, j);
+                }
+            }
+
+            MultivariateNormalDistributionApproximation approx =
+                    new MultivariateNormalDistributionApproximation(means.getData(), covariance);
+
+            List<WordProb> queue = new ArrayList<>();
+            for (int i = 0; i < dataVectors.length; i += 1) {
+                DenseMatrix64F vector = dataVectors[i];
+                double prob = approx.density(vector.data);
+                WordProb wordProb = new WordProb(i, prob);
+                queue.add(wordProb);
+            }
+
+            int TOP_WORDS = 10;
+            queue.sort(new WordProbComparator());
+            assert queue.get(0).prob == queue.stream().mapToDouble(o -> o.prob).min().getAsDouble();
+            assert queue.get(queue.size() - 1).prob == queue.stream().mapToDouble(o -> o.prob).max().getAsDouble();
+            for (int m = 0; m < TOP_WORDS; m += 1) {
+                if (m == 0) {
+                    output.write(vocabulary.get(queue.get(queue.size() - 1 - m).wordId));
+                } else {
+                    output.write(" " + vocabulary.get(queue.get(queue.size() - 1 - m).wordId));
+                }
+            }
+            output.write("\n");
+        }
+        output.close();
+    }
+
     /**
      * Prints the multivariate distributions (the word|topic distribution)
      */

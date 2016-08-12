@@ -1,11 +1,6 @@
 package sampler;
 
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,15 +28,17 @@ import data.Data;
 public class GaussianLDAAlias implements Runnable {
 
 
+    private static List<String> vocabulary;
+
     /**
      * The embedding associated with each word of the vocab.
      */
     private static DenseMatrix64F[] dataVectors;
-
     /**
      * The corpus of documents
      */
     private static List<ArrayList<Integer>> corpus;
+
     /**
      * Number of iterations of Gibbs sweep
      */
@@ -51,16 +48,15 @@ public class GaussianLDAAlias implements Runnable {
      * Number of tables in the current iteration
      */
     private static int K;
-
     /**
      * Number of documents
      */
     private static int N;
+
     /**
      * In the current iteration, map of table_id's to number of customers. ****Table id starts from 0.****
      */
     private static HashMap<Integer, Integer> tableCounts = new HashMap<Integer, Integer>();
-
     /**
      * tableCountstableCountsPerDoc is a K X N array. tableCounts[i][j] represents how many words of document j are present in topic i.
      */
@@ -68,7 +64,9 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * map of table id to id of customers
      */
+
     //private static HashMap<Integer,Set<Integer>> tableMembers = new HashMap<Integer,Set<Integer>>();
+
 
     /**
      * Stores the table (topic) assignment of each customer in each iteration. tableAssignments[i][j] gives the table assignment of customer j of the ith document.
@@ -77,13 +75,9 @@ public class GaussianLDAAlias implements Runnable {
 
 
     /**
-     * The following 4 parameters are arraylist and not maps because, if they are K tables, they are continuously numbered from 0 to K-1 and hence we can directly index them.
-     */
-    /**
      * mean vector associated with each table in the current iteration. This is the bayesian mean (i.e has the prior part too)
      */
     private static ArrayList<DenseMatrix64F> tableMeans = new ArrayList<DenseMatrix64F>();
-
 
     /**
      * Cholesky Lower Triangular Decomposition of covariance matrix associated with each table.
@@ -104,17 +98,17 @@ public class GaussianLDAAlias implements Runnable {
      * the normal inverse wishart prior
      */
     private static NormalInverseWishart prior;
-
     private static CholeskyDecomposition<DenseMatrix64F> decomposer = DecompositionFactory.chol(Data.D, true);
+
     /**
      * Caching the choelsky of prior sigma0
      */
     private static DenseMatrix64F CholSigma0;
-
     /**
      * file path for reading vocab (to form mapping) and the initial cluster assignment
      */
     private static String dirName;
+
     //the dirichlet hyperparam.
     private static double alpha;
 
@@ -124,7 +118,6 @@ public class GaussianLDAAlias implements Runnable {
     private static VoseAlias[] q;
 
     public static boolean done = false;
-
     private static int MH_STEPS = 2;
 /************************************Member Declaration Ends***********************************/
     /**
@@ -370,10 +363,9 @@ public class GaussianLDAAlias implements Runnable {
                     updateTableParams(newTableId, custId, false);
                     wordCounter++;
                 }
-                if (d % 10 == 0) {
-                    //runLogger.write("Done for document "+d+"\n");
-                    System.out.println("Done for document " + d);
-                    System.out.println("Time for document  " + d + " " + (System.currentTimeMillis() - startTime));
+                if (d % 1000 == 0) {
+                    System.out.println(String.format("Finished %d. Took %d s", d, (System.currentTimeMillis() - startTime) / 1000));
+                    startTime = System.currentTimeMillis();
                 }
             }
             //Printing stuffs now
@@ -390,6 +382,7 @@ public class GaussianLDAAlias implements Runnable {
             writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, currentIteration);
             writer.printTableAssignments(tableAssignments, currentIteration);
             writer.printNumCustomersPerTopic(tableCountsPerDoc, currentIteration);
+            writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, currentIteration);
         }
         done = true;
         t1.join();
@@ -434,6 +427,7 @@ public class GaussianLDAAlias implements Runnable {
         //Read corpus
         String inputCorpusFile = args[5];
         corpus = Data.readCorpus(inputCorpusFile);
+        vocabulary = readVocabulary(args[6]);
         System.out.println("Corpus file read");
         N = corpus.size();
         System.out.println("Total number of documents are " + N);
@@ -476,6 +470,17 @@ public class GaussianLDAAlias implements Runnable {
 
         System.out.println("Printing the distributions");
         System.out.println("Done");
+    }
+
+    private static List<String> readVocabulary(String vocabularyFile) throws IOException {
+        List<String> vocabulary = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(vocabularyFile))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                vocabulary.add(line);
+            }
+        }
+        return vocabulary;
     }
 
     @Override
