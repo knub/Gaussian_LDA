@@ -71,7 +71,7 @@ public class Data {
             ArrayList<Integer> doc = new ArrayList<Integer>();
             String[] words = line.split(" ");
             for (String word : words)
-                doc.add(Integer.parseInt(word));
+                doc.add(Integer.parseInt(word) - 1);
             corpus.add(doc);
         }
         reader.close();
