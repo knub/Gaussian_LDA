@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.math3.special.Gamma;
@@ -40,7 +41,7 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * The corpus of documents
      */
-    private static ArrayList<ArrayList<Integer>> corpus;
+    private static List<ArrayList<Integer>> corpus;
     /**
      * Number of iterations of Gibbs sweep
      */
