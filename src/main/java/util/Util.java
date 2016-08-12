@@ -227,115 +227,70 @@ public class Util {
     /**
      * Prints the multivariate distributions (the word|topic distribution)
      */
-    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName) {
-        try {
-            for (int i = 0; i < K; i++) {
-                BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                        new FileOutputStream(dirName + i + ".txt", true), "UTF-8"));
-                //first write the mean
-                for (int l = 0; l < tableMeans.get(i).numRows; l++)
-                    output.write(tableMeans.get(i).get(l, 0) + " ");
-                output.write("\n");
-                //write the covariance matrix
-                //first recover it from the cholesky
-                DenseMatrix64F chol = tableCholeskyLTriangularMat.get(i);
-                //DenseMatrix64F cholT = new DenseMatrix64F(chol.numRows,chol.numCols);
-                //CommonOps.transpose(chol, cholT);
-                //DenseMatrix64F covar = new DenseMatrix64F(chol.numRows,chol.numCols);
-                //CommonOps.mult(chol,cholT,covar);
-
-                //write the covar now
-                for (int r = 0; r < chol.numRows; r++) {
-                    for (int c = 0; c < chol.numCols; c++)
-                        output.write(chol.get(r, c) + " ");
-                    output.write("\n");
-                }
-                output.close();
-            }
-
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
-
-    public static void printNumCustomersPerTopic(int[][] tableCountsPerDoc, String dirName, int K, int N) {
-        try {
+    public static void printGaussians(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, String dirName) throws IOException {
+        for (int i = 0; i < K; i++) {
             BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "topic_counts" + ".txt", true), "UTF-8"));
-            for (int k = 0; k < K; k++) {
-                int n_k = 0;
-                for (int n = 0; n < N; n++)
-                    n_k = n_k + tableCountsPerDoc[k][n];
-                output.write(n_k + "\n");
+                    new FileOutputStream(dirName + i + ".txt", true), "UTF-8"));
+            //first write the mean
+            for (int l = 0; l < tableMeans.get(i).numRows; l++)
+                output.write(tableMeans.get(i).get(l, 0) + " ");
+            output.write("\n");
+            //write the covariance matrix
+            //first recover it from the cholesky
+            DenseMatrix64F chol = tableCholeskyLTriangularMat.get(i);
+            //DenseMatrix64F cholT = new DenseMatrix64F(chol.numRows,chol.numCols);
+            //CommonOps.transpose(chol, cholT);
+            //DenseMatrix64F covar = new DenseMatrix64F(chol.numRows,chol.numCols);
+            //CommonOps.mult(chol,cholT,covar);
+
+            //write the covar now
+            for (int r = 0; r < chol.numRows; r++) {
+                for (int c = 0; c < chol.numCols; c++)
+                    output.write(chol.get(r, c) + " ");
+                output.write("\n");
             }
             output.close();
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
     }
 
-    public static void printDocumentTopicDistribution(int[][] tableCountsPerDoc, int numDocs, int K, String dirName, double alpha) {
+    public static void printNumCustomersPerTopic(int[][] tableCountsPerDoc, String dirName, int K, int N) throws IOException {
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "topic_counts" + ".txt", true), "UTF-8"));
+        for (int k = 0; k < K; k++) {
+            int n_k = 0;
+            for (int n = 0; n < N; n++)
+                n_k = n_k + tableCountsPerDoc[k][n];
+            output.write(n_k + "\n");
+        }
+        output.close();
+    }
+
+    public static void printDocumentTopicDistribution(int[][] tableCountsPerDoc, int numDocs, int K, String dirName, double alpha) throws IOException {
         //for each document, print the normalized count
-        try {
-            BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "document_topic" + ".txt", true), "UTF-8"));
-            System.out.println(numDocs);
-            for (int i = 0; i < numDocs; i++) {
-                double sum = 0;
-                for (int k = 0; k < K; k++)
-                    sum += tableCountsPerDoc[k][i];
-                for (int k = 0; k < K; k++)
-                    output.write((tableCountsPerDoc[k][i] + alpha) / (double) (sum + K * alpha) + " ");
-                output.write("\n");
-            }
-            output.close();
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "document_topic" + ".txt", true), "UTF-8"));
+        System.out.println(numDocs);
+        for (int i = 0; i < numDocs; i++) {
+            double sum = 0;
+            for (int k = 0; k < K; k++)
+                sum += tableCountsPerDoc[k][i];
+            for (int k = 0; k < K; k++)
+                output.write((tableCountsPerDoc[k][i] + alpha) / (double) (sum + K * alpha) + " ");
+            output.write("\n");
         }
+        output.close();
     }
 
-    public static void printTableAssignments(ArrayList<ArrayList<Integer>> tableAssignments, String dirName) {
-        try {
-            BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "table_assignments" + ".txt", true), "UTF-8"));
-            for (int i = 0; i < tableAssignments.size(); i++) {
-                ArrayList<Integer> eachDoc = tableAssignments.get(i);
-                for (int assignment : eachDoc)
-                    output.write(assignment + " ");
-                output.write("\n");
-            }
-            output.close();
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+    public static void printTableAssignments(ArrayList<ArrayList<Integer>> tableAssignments, String dirName) throws IOException {
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "table_assignments" + ".txt", true), "UTF-8"));
+        for (int i = 0; i < tableAssignments.size(); i++) {
+            ArrayList<Integer> eachDoc = tableAssignments.get(i);
+            for (int assignment : eachDoc)
+                output.write(assignment + " ");
+            output.write("\n");
         }
+        output.close();
     }
 
     /**
@@ -423,76 +378,54 @@ public class Util {
      * @param vocabFile
      * @return
      */
-    public static HashMap<Integer, String> getCustomerIdWordMappings(String vocabFile) {
+    public static HashMap<Integer, String> getCustomerIdWordMappings(String vocabFile) throws IOException {
         HashMap<Integer, String> map = new HashMap<Integer, String>();
-        try {
-            BufferedReader reader1 =
-                    new BufferedReader(
-                            new InputStreamReader(new FileInputStream(vocabFile), "UTF-8"));
-            String word = "";
-            int counter = 0;
-            while ((word = reader1.readLine()) != null) {
-                map.put(counter, word);
-                counter++;
-            }
-            reader1.close();
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        BufferedReader reader1 =
+                new BufferedReader(
+                        new InputStreamReader(new FileInputStream(vocabFile), "UTF-8"));
+        String word = "";
+        int counter = 0;
+        while ((word = reader1.readLine()) != null) {
+            map.put(counter, word);
+            counter++;
         }
+        reader1.close();
         return map;
     }
 
-    private static void makeClusterNumbersContinuous() {
-        try {
-            BufferedReader reader1 =
-                    new BufferedReader(
-                            new InputStreamReader(new FileInputStream("data/test/bergsma_vocab.txt"), "UTF-8"));
+    private static void makeClusterNumbersContinuous() throws IOException {
+        BufferedReader reader1 =
+                new BufferedReader(
+                        new InputStreamReader(new FileInputStream("data/test/bergsma_vocab.txt"), "UTF-8"));
 
-            BufferedReader reader2 =
-                    new BufferedReader(
-                            new InputStreamReader(new FileInputStream("data/test/bergsma_cluster_nums.txt"), "UTF-8"));
+        BufferedReader reader2 =
+                new BufferedReader(
+                        new InputStreamReader(new FileInputStream("data/test/bergsma_cluster_nums.txt"), "UTF-8"));
 
-            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream("data/test/bergsma_cluster_nums_continuous.txt"), "UTF-8"));
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream("data/test/bergsma_cluster_nums_continuous.txt"), "UTF-8"));
 
-            String cluster_line = "";
-            int counter = 0;
-            HashMap<Integer, Integer> idMapping = new HashMap<Integer, Integer>();
-            while ((cluster_line = reader2.readLine()) != null) {
-                String c_word = reader1.readLine();
-                int c = Integer.parseInt(cluster_line);
-                if (!idMapping.containsKey(c)) {
-                    idMapping.put(c, counter);
-                    out.write(counter + "\n");
-                    counter++;
-                } else {
-                    int map = idMapping.get(c);
-                    out.write(map + "\n");
-                }
+        String cluster_line = "";
+        int counter = 0;
+        HashMap<Integer, Integer> idMapping = new HashMap<Integer, Integer>();
+        while ((cluster_line = reader2.readLine()) != null) {
+            String c_word = reader1.readLine();
+            int c = Integer.parseInt(cluster_line);
+            if (!idMapping.containsKey(c)) {
+                idMapping.put(c, counter);
+                out.write(counter + "\n");
+                counter++;
+            } else {
+                int map = idMapping.get(c);
+                out.write(map + "\n");
             }
-            reader2.close();
-            reader1.close();
-            out.close();
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
+        reader2.close();
+        reader1.close();
+        out.close();
     }
 
-    private static void readClusterPrintAsHTML() {
+    private static void readClusterPrintAsHTML() throws IOException {
         //first read the all_word_langid_map.txt file to create a map of word -> lang -> softcounts
         HashMap<String, HashMap<String, Double>> wordLangMap = new HashMap<String, HashMap<String, Double>>();
         String wordLangFile = "data/test/all/all_word_langid_map.txt";
@@ -500,117 +433,111 @@ public class Util {
         String clusterFileName = "/Users/rajarshd/Dropbox/Research/c-lab/DPGMM/my_implementation/final_clusters/last_iteration_table_members.txt";
         String outputFileName = "/Users/rajarshd/Dropbox/Research/c-lab/DPGMM/my_implementation/final_clusters/last_iteration_table_members.html";
 
-        try {
 
-            PrintStream out = new PrintStream(outputFileName, "UTF-8");
-            out.println("<html>");
-            out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />");
+        PrintStream out = new PrintStream(outputFileName, "UTF-8");
+        out.println("<html>");
+        out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />");
 
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(wordLangFile), "UTF-8"));
-            String line;
-            while ((line = reader.readLine()) != null)//for eadh word
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(wordLangFile), "UTF-8"));
+        String line;
+        while ((line = reader.readLine()) != null)//for eadh word
+        {
+            String[] split = line.split(" ");
+            String word = split[0];
+            String langsCounts = split[1];
+            split = langsCounts.split(",");
+            double sum = 0;
+            for (String langCount : split)//for each language a word belongs to
             {
-                String[] split = line.split(" ");
-                String word = split[0];
-                String langsCounts = split[1];
-                split = langsCounts.split(",");
-                double sum = 0;
-                for (String langCount : split)//for each language a word belongs to
-                {
-                    String[] splits = langCount.split(":");
-                    String lang = splits[0];
-                    int count = Integer.parseInt(splits[1]);
-                    sum = sum + count;
-                    if (!wordLangMap.containsKey(word)) {
-                        HashMap<String, Double> langSoftCountMap = new HashMap<String, Double>();
-                        langSoftCountMap.put(lang, count * 1.0);
-                        wordLangMap.put(word, langSoftCountMap);
-                    } else {
-                        HashMap<String, Double> langSoftCountMap = wordLangMap.get(word);
-                        langSoftCountMap.put(lang, count * 1.0);
-                        wordLangMap.put(word, langSoftCountMap);
-                    }
+                String[] splits = langCount.split(":");
+                String lang = splits[0];
+                int count = Integer.parseInt(splits[1]);
+                sum = sum + count;
+                if (!wordLangMap.containsKey(word)) {
+                    HashMap<String, Double> langSoftCountMap = new HashMap<String, Double>();
+                    langSoftCountMap.put(lang, count * 1.0);
+                    wordLangMap.put(word, langSoftCountMap);
+                } else {
+                    HashMap<String, Double> langSoftCountMap = wordLangMap.get(word);
+                    langSoftCountMap.put(lang, count * 1.0);
+                    wordLangMap.put(word, langSoftCountMap);
                 }
-                Iterator<Entry<String, Double>> iter = wordLangMap.get(word).entrySet().iterator();
-                while (iter.hasNext()) {
-                    Entry<String, Double> e = iter.next();
-                    e.setValue(e.getValue() / sum);
-                }
-                //String maxLang = split[0];
-                //wordLangMap.put(word, maxLang);
             }
-            reader.close();
-            reader = new BufferedReader(new InputStreamReader(new FileInputStream(clusterFileName), "UTF-8"));
-            while ((line = reader.readLine()) != null)//for each cluster
+            Iterator<Entry<String, Double>> iter = wordLangMap.get(word).entrySet().iterator();
+            while (iter.hasNext()) {
+                Entry<String, Double> e = iter.next();
+                e.setValue(e.getValue() / sum);
+            }
+            //String maxLang = split[0];
+            //wordLangMap.put(word, maxLang);
+        }
+        reader.close();
+        reader = new BufferedReader(new InputStreamReader(new FileInputStream(clusterFileName), "UTF-8"));
+        while ((line = reader.readLine()) != null)//for each cluster
+        {
+            HashMap<String, Double> langCountMap = new HashMap<String, Double>();
+            String[] split = line.split(":");
+            int clusterNum = Integer.parseInt(split[0]);
+            String[] clusterWords = split[1].split(" ");
+            int count = 0;
+            for (int m = 1; m < clusterWords.length; m++) //starting from 1 because first word is space
             {
-                HashMap<String, Double> langCountMap = new HashMap<String, Double>();
-                String[] split = line.split(":");
-                int clusterNum = Integer.parseInt(split[0]);
-                String[] clusterWords = split[1].split(" ");
-                int count = 0;
-                for (int m = 1; m < clusterWords.length; m++) //starting from 1 because first word is space
-                {
-                    String word = clusterWords[m];
-                    if (wordLangMap.containsKey(word)) {
-                        count++;
-                        HashMap<String, Double> langSoftCountMap = wordLangMap.get(word);
-                        Set<Entry<String, Double>> langSoftCountSet = langSoftCountMap.entrySet();
-                        for (Entry<String, Double> e : langSoftCountSet) {
-                            String lang = e.getKey();
-                            double c = e.getValue();
-                            if (!langCountMap.containsKey(lang))
-                                langCountMap.put(lang, c);
-                            else {
-                                double langCount = langCountMap.get(lang);
-                                langCountMap.put(lang, langCount + c);
-                            }
+                String word = clusterWords[m];
+                if (wordLangMap.containsKey(word)) {
+                    count++;
+                    HashMap<String, Double> langSoftCountMap = wordLangMap.get(word);
+                    Set<Entry<String, Double>> langSoftCountSet = langSoftCountMap.entrySet();
+                    for (Entry<String, Double> e : langSoftCountSet) {
+                        String lang = e.getKey();
+                        double c = e.getValue();
+                        if (!langCountMap.containsKey(lang))
+                            langCountMap.put(lang, c);
+                        else {
+                            double langCount = langCountMap.get(lang);
+                            langCountMap.put(lang, langCount + c);
                         }
                     }
                 }
-
-                Set<Entry<String, Double>> set = langCountMap.entrySet();
-                ArrayList<Entry<String, Double>> list = new ArrayList<Entry<String, Double>>();
-                Iterator<Entry<String, Double>> iter = set.iterator();
-                while (iter.hasNext())
-                    list.add(iter.next());
-                //sort in descending order
-                Collections.sort(list, new Comparator<Entry<String, Double>>() {
-
-                    @Override
-                    public int compare(Entry<String, Double> o1,
-                                       Entry<String, Double> o2) {
-                        // TODO Auto-generated method stub
-                        double count1 = o1.getValue();
-                        double count2 = o2.getValue();
-                        if (count2 > count1)
-                            return -1;
-                        else
-                            return 0;
-                    }
-
-                });
-
-                //normalize the list
-                double sum = 0;
-                for (Entry<String, Double> e : list)
-                    sum = sum + e.getValue();
-
-                for (Entry<String, Double> e : list)
-                    e.setValue(e.getValue() / sum);
-
-                System.out.println("Cluster " + clusterNum + " count " + count);
-                for (int i = 0; i < list.size(); i++)
-                    System.out.println(list.get(i).getKey() + " " + list.get(i).getValue());
-
-
             }
-            reader.close();
-        } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
-        } catch (IOException ex) {
-            ex.printStackTrace();
+
+            Set<Entry<String, Double>> set = langCountMap.entrySet();
+            ArrayList<Entry<String, Double>> list = new ArrayList<Entry<String, Double>>();
+            Iterator<Entry<String, Double>> iter = set.iterator();
+            while (iter.hasNext())
+                list.add(iter.next());
+            //sort in descending order
+            Collections.sort(list, new Comparator<Entry<String, Double>>() {
+
+                @Override
+                public int compare(Entry<String, Double> o1,
+                                   Entry<String, Double> o2) {
+                    // TODO Auto-generated method stub
+                    double count1 = o1.getValue();
+                    double count2 = o2.getValue();
+                    if (count2 > count1)
+                        return -1;
+                    else
+                        return 0;
+                }
+
+            });
+
+            //normalize the list
+            double sum = 0;
+            for (Entry<String, Double> e : list)
+                sum = sum + e.getValue();
+
+            for (Entry<String, Double> e : list)
+                e.setValue(e.getValue() / sum);
+
+            System.out.println("Cluster " + clusterNum + " count " + count);
+            for (int i = 0; i < list.size(); i++)
+                System.out.println(list.get(i).getKey() + " " + list.get(i).getValue());
+
+
         }
+        reader.close();
     }
 
 

@@ -278,18 +278,10 @@ public class GaussianLDAAlias implements Runnable {
         return logprob;
     }
 
-    private static void sample() throws IOException {
+    private static void sample() throws IOException, InterruptedException {
         BufferedWriter out = null;
-        try {
-            out = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        out = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
@@ -393,17 +385,8 @@ public class GaussianLDAAlias implements Runnable {
             System.out.println("Avg log-likelihood at the end of iteration " + currentIteration + " is " + avgLL);
         }
         done = true;
-        try {
-            t1.join();
-        } catch (InterruptedException e1) {
-            e1.printStackTrace();
-        }
-        try {
-            out.close();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        t1.join();
+        out.close();
     }
 
     public static void getTopWordsPerTopic() {
@@ -422,8 +405,7 @@ public class GaussianLDAAlias implements Runnable {
      * @param args
      * @throws IOException
      */
-    public static void main(String[] args) throws IOException {
-        // TODO Auto-generated method stub
+    public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.currentTimeMillis();
         //Get the input file given as input
         String inputFile = args[0];
@@ -451,10 +433,8 @@ public class GaussianLDAAlias implements Runnable {
         //initialize the prior
         prior = new NormalInverseWishart();
         prior.mu_0 = Util.getSampleMean(dataVectors);
-        //prior.mu_0 = new DenseMatrix64F(Data.D,1);//init to zeros
         prior.nu_0 = Data.D; //initializing to the dimension
         prior.sigma_0 = CommonOps.identity(Data.D); //setting as the identity matrix
-        //CommonOps.scale(5*max, prior.sigma_0);
         CommonOps.scale(3 * Data.D, prior.sigma_0);
         prior.k_0 = 0.1;
         CholSigma0 = new DenseMatrix64F(Data.D, Data.D);
@@ -481,12 +461,10 @@ public class GaussianLDAAlias implements Runnable {
         System.out.println("Gibbs sampler will run for " + numIterations + " iterations");
         /******sample*********/
         sample();
-        //System.out.println("Num of tables in each iteration: ");
         long stopTime = System.currentTimeMillis();
         double elapsedTime = (stopTime - startTime) / (double) 1000;
-        //System.out.println("Time taken "+elapsedTime);
         System.out.println("Time taken " + elapsedTime);
-        //Print the gaussian
+
         System.out.println("Printing the distributions");
         Util.printGaussians(tableMeans, tableCholeskyLTriangularMat, K, dirName);
         Util.printDocumentTopicDistribution(tableCountsPerDoc, N, K, dirName, alpha);
