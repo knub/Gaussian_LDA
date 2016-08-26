@@ -286,13 +286,19 @@ public class Util {
 
             int TOP_WORDS = 10;
             queue.sort(new WordProbComparator());
-            assert queue.get(0).prob == queue.stream().mapToDouble(o -> o.prob).min().getAsDouble();
-            assert queue.get(queue.size() - 1).prob == queue.stream().mapToDouble(o -> o.prob).max().getAsDouble();
+            double minProb = queue.stream().mapToDouble(o -> o.prob).min().getAsDouble();
+            double maxProb = queue.stream().mapToDouble(o -> o.prob).max().getAsDouble();
+            assert queue.get(0).prob == minProb;
+            assert queue.get(queue.size() - 1).prob == maxProb;
+            System.out.println(String.format("Topic %d with minProb %f and maxProb %f", k, minProb, maxProb));
             for (int m = 0; m < TOP_WORDS; m += 1) {
+                WordProb wordProb = queue.get(queue.size() - 1 - m);
+                String word = vocabulary.get(wordProb.wordId);
+                System.out.println(word + " " + wordProb.prob);
                 if (m == 0) {
-                    output.write(vocabulary.get(queue.get(queue.size() - 1 - m).wordId));
+                    output.write(word);
                 } else {
-                    output.write(" " + vocabulary.get(queue.get(queue.size() - 1 - m).wordId));
+                    output.write(" " + word);
                 }
             }
             output.write("\n");
