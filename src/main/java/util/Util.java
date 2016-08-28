@@ -266,7 +266,7 @@ public class Util {
             CommonOps.mult(chol, cholT, covar);
 
 
-            double[][] covariance = new double[200][200];
+            double[][] covariance = new double[Data.D][Data.D];
             for (int i = 0; i < covar.numRows; i += 1) {
                 for (int j = 0; j < covar.numCols; j += 1) {
                     covariance[i][j] = covar.get(i, j);
