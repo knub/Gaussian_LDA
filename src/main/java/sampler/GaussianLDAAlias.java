@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import knub.master_thesis.util.CorpusReader;
 import org.apache.commons.math3.special.Gamma;
 import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
@@ -37,7 +40,7 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * The corpus of documents
      */
-    private static List<ArrayList<Integer>> corpus;
+    private static List<IntArrayList> corpus;
 
     /**
      * Number of iterations of Gibbs sweep
@@ -215,11 +218,12 @@ public class GaussianLDAAlias implements Runnable {
         Random gen = new Random();
         for (int d = 0; d < N; d++) //for each document
         {
-            ArrayList<Integer> doc = corpus.get(d);
+            IntArrayList doc = corpus.get(d);
             int wordCounter = 0;
             tableAssignments.add(new ArrayList<Integer>());
-            for (int i : doc) //for each word in the document.
+            for (IntCursor c : doc) //for each word in the document.
             {
+                int i = c.value;
                 int tableId = gen.nextInt(K);
                 tableAssignments.get(d).add(tableId);
                 if (tableCounts.containsKey(tableId)) {
@@ -284,9 +288,10 @@ public class GaussianLDAAlias implements Runnable {
             long iterationStartTime = System.currentTimeMillis();
             System.out.println("Starting iteration " + currentIteration);
             for (int d = 0; d < corpus.size(); d++) {
-                ArrayList<Integer> document = corpus.get(d);
+                IntArrayList document = corpus.get(d);
                 int wordCounter = 0;
-                for (int custId : document) {
+                for (IntCursor c : document) {
+                    int custId = c.value;
                     //remove custId from his old_table
                     int oldTableId = tableAssignments.get(d).get(wordCounter);
                     tableAssignments.get(d).set(wordCounter, -1);
@@ -401,7 +406,6 @@ public class GaussianLDAAlias implements Runnable {
         //First set the dimension of data which user has given input
         int D = Integer.parseInt(args[1]);
         numIterations = Integer.parseInt(args[2]);
-        ;
         Data.D = D;
         //read the initial number of clusters for k-means
         K = Integer.parseInt(args[3]);
@@ -414,7 +418,8 @@ public class GaussianLDAAlias implements Runnable {
         System.out.println("Total number of vectors are " + data.numRows);
         //Read corpus
         String inputCorpusFile = args[5];
-        corpus = Data.readCorpus(inputCorpusFile);
+//        corpus = Data.readCorpus(inputCorpusFile);
+        corpus = CorpusReader.readCorpus(inputCorpusFile).documents();
         vocabulary = readVocabulary(args[6]);
         System.out.println("Corpus file read");
         N = corpus.size();

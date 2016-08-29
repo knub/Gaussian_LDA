@@ -9,19 +9,18 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
@@ -375,7 +374,7 @@ public class Util {
         output.close();
     }
 
-    public static double calculateAvgLL(List<ArrayList<Integer>> corpus, ArrayList<ArrayList<Integer>> tableAssignments,
+    public static double calculateAvgLL(List<IntArrayList> corpus, ArrayList<ArrayList<Integer>> tableAssignments,
                                         DenseMatrix64F[] dataVectors, ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat, int K, int N, NormalInverseWishart prior, int[][] tableCountsPerDoc) {
         //first divide the cholesky's by the scale term
         //but before that calculate the number of words sitting in each table
@@ -421,9 +420,10 @@ public class Util {
         int docCounter = 0;
         int totalWordCounter = 0;
         double totalLogLL = 0;
-        for (ArrayList<Integer> eachDoc : corpus) {
+        for (IntArrayList eachDoc : corpus) {
             int wordCounter = 0;
-            for (int word : eachDoc) {
+            for (IntCursor c : eachDoc) {
+                int word = c.value;
                 DenseMatrix64F x = dataVectors[word];
                 int tableId = tableAssignments.get(docCounter).get(wordCounter);
                 //calculate (x-\mu)
