@@ -290,11 +290,11 @@ public class Util {
             double maxProb = queue.stream().mapToDouble(o -> o.prob).max().getAsDouble();
             assert queue.get(0).prob == minProb;
             assert queue.get(queue.size() - 1).prob == maxProb;
-            System.out.println(String.format("Topic %d with minProb %f and maxProb %f", k, minProb, maxProb));
+//            System.out.println(String.format("Topic %d with minProb %f and maxProb %f", k, minProb, maxProb));
             for (int m = 0; m < TOP_WORDS; m += 1) {
                 WordProb wordProb = queue.get(queue.size() - 1 - m);
                 String word = vocabulary.get(wordProb.wordId);
-                System.out.println(word + " " + wordProb.prob);
+//                System.out.println(word + " " + wordProb.prob);
                 if (m == 0) {
                     output.write(word);
                 } else {
@@ -352,7 +352,6 @@ public class Util {
         //for each document, print the normalized count
         BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(String.format("%s%03d.document-topic", dirName, currentIteration), true), "UTF-8"));
-        System.out.println(N);
         for (int i = 0; i < N; i++) {
             double sum = 0;
             for (int k = 0; k < K; k++)

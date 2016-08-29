@@ -279,8 +279,9 @@ public class GaussianLDAAlias implements Runnable {
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
+        long startTime = System.currentTimeMillis();
         for (currentIteration = 0; currentIteration < numIterations; currentIteration++) {
-            long startTime = System.currentTimeMillis();
+            long iterationStartTime = System.currentTimeMillis();
             System.out.println("Starting iteration " + currentIteration);
             for (int d = 0; d < corpus.size(); d++) {
                 ArrayList<Integer> document = corpus.get(d);
@@ -363,20 +364,19 @@ public class GaussianLDAAlias implements Runnable {
                     updateTableParams(newTableId, custId, false);
                     wordCounter++;
                 }
-                if (d % 1000 == 0) {
-                    System.out.println(String.format("Finished %d. Took %d s", d, (System.currentTimeMillis() - startTime) / 1000));
-                    startTime = System.currentTimeMillis();
-                }
+//                if (d % 1000 == 0) {
+//                    System.out.println(String.format("Finished %d. Took %d s", d, (System.currentTimeMillis() - iterationStartTime) / 1000));
+//                    iterationStartTime = System.currentTimeMillis();
+//                }
             }
             //Printing stuffs now
             long stopTime = System.currentTimeMillis();
             double elapsedTime = (stopTime - startTime) / (double) 1000;
-            System.out.println(String.format("Iteration completed: %d in %.0f s", currentIteration, elapsedTime));
+            System.out.println(String.format("Iteration %d completed in %.0f s", currentIteration, elapsedTime));
 
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
             System.out.println("Avg log-likelihood at the end of iteration " + currentIteration + " is " + avgLL);
-
 
             writer.printGaussians(tableMeans, tableCholeskyLTriangularMat, currentIteration);
             writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, currentIteration);
@@ -387,18 +387,6 @@ public class GaussianLDAAlias implements Runnable {
         done = true;
         t1.join();
         out.close();
-    }
-
-    public static void getTopWordsPerTopic() {
-
-    }
-
-    public static ArrayList<DenseMatrix64F> getTableMeans() {
-        return tableMeans;
-    }
-
-    public static ArrayList<DenseMatrix64F> getTableCholeskyLTriangularMat() {
-        return tableCholeskyLTriangularMat;
     }
 
     /**
