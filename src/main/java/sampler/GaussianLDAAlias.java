@@ -9,6 +9,7 @@ import java.util.Random;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import knub.master_thesis.util.CorpusReader;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.special.Gamma;
 import org.ejml.alg.dense.decomposition.TriangularSolver;
 import org.ejml.data.DenseMatrix64F;
@@ -29,6 +30,8 @@ import data.Data;
  * @author rajarshd
  */
 public class GaussianLDAAlias implements Runnable {
+
+    public static FileWriter iterationProgressWriter;
 
 
     private static List<String> vocabulary;
@@ -55,6 +58,10 @@ public class GaussianLDAAlias implements Runnable {
      * Number of documents
      */
     private static int N;
+    /*
+     * save every x iterations
+     */
+    private static int saveStep;
 
     /**
      * In the current iteration, map of table_id's to number of customers. ****Table id starts from 0.****
@@ -93,11 +100,6 @@ public class GaussianLDAAlias implements Runnable {
     private static ArrayList<Double> logDeterminants = new ArrayList<Double>();
 
     /**
-     * current iteration counter
-     */
-    private static int currentIteration;
-
-    /**
      * the normal inverse wishart prior
      */
     private static NormalInverseWishart prior;
@@ -122,6 +124,10 @@ public class GaussianLDAAlias implements Runnable {
 
     public static boolean done = false;
     private static int MH_STEPS = 2;
+
+    public GaussianLDAAlias() throws IOException {
+        iterationProgressWriter.write("iteration\tlikelihood\ttime%n");
+    }
 /************************************Member Declaration Ends***********************************/
     /**
      * updates params -- mean and the cholesky decomp of covariance matrix using rank1 update (customer added) or downdate (customer removed)
@@ -194,7 +200,6 @@ public class GaussianLDAAlias implements Runnable {
      * @throws IOException
      */
     public static void initialize() throws IOException {
-        currentIteration = 0;
         //first check the prior degrees of freedom. It has to be >= num_dimension
         if (prior.nu_0 < (double) Data.D) {
             System.out.println("The initial degrees of freedom of the prior is less than the dimension!. Setting it to the number of dimension: " + Data.D);
@@ -244,10 +249,9 @@ public class GaussianLDAAlias implements Runnable {
                 System.exit(1);
             }
 
-        System.out.println("Initialization complete");
         //calculate initial avg ll
         double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
-        System.out.println("Average ll at the begining " + avgLL);
+        iterationProgressWriter.write(String.format("0\t%.4f\0%n", avgLL));
     }
 
     private static double logMultivariateTDensity(DenseMatrix64F x, int tableId) {
@@ -277,16 +281,16 @@ public class GaussianLDAAlias implements Runnable {
     }
 
     private static void sample(Util writer) throws IOException, InterruptedException {
-        BufferedWriter out = null;
-        out = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(dirName + "table_members.txt"), "UTF-8"));
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
-        long startTime = System.currentTimeMillis();
-        for (currentIteration = 0; currentIteration < numIterations; currentIteration++) {
-            long iterationStartTime = System.currentTimeMillis();
-            System.out.println("Starting iteration " + currentIteration);
+        writer.printGaussians(tableMeans, tableCholeskyLTriangularMat, 0);
+        writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, 0);
+        writer.printTableAssignments(tableAssignments, 0);
+        writer.printNumCustomersPerTopic(tableCountsPerDoc, 0);
+        writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, 0);
+        for (int currentIteration = 1; currentIteration <= numIterations; currentIteration++) {
+            long startTime = System.currentTimeMillis();
             for (int d = 0; d < corpus.size(); d++) {
                 IntArrayList document = corpus.get(d);
                 int wordCounter = 0;
@@ -376,94 +380,29 @@ public class GaussianLDAAlias implements Runnable {
             }
             //Printing stuffs now
             long stopTime = System.currentTimeMillis();
-            double elapsedTime = (stopTime - startTime) / (double) 1000;
-            System.out.println(String.format("Iteration %d completed in %.0f s", currentIteration, elapsedTime));
+            long elapsedTime = (stopTime - startTime) / 1000;
 
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
-            System.out.println("Avg log-likelihood at the end of iteration " + currentIteration + " is " + avgLL);
+            String iterationOutput = String.format("%d\t%.4f\t%d%n", currentIteration, avgLL, elapsedTime);
+            System.out.println(iterationOutput);
+            iterationProgressWriter.write(iterationOutput);
 
-            writer.printGaussians(tableMeans, tableCholeskyLTriangularMat, currentIteration);
-            writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, currentIteration);
-            writer.printTableAssignments(tableAssignments, currentIteration);
-            writer.printNumCustomersPerTopic(tableCountsPerDoc, currentIteration);
-            writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, currentIteration);
+            if (currentIteration == numIterations || currentIteration % saveStep == 0) {
+                if (currentIteration == numIterations) {
+                    writer.printGaussians(tableMeans, tableCholeskyLTriangularMat, currentIteration);
+                    writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, currentIteration);
+                    writer.printTableAssignments(tableAssignments, currentIteration);
+                    writer.printNumCustomersPerTopic(tableCountsPerDoc, currentIteration);
+                }
+                writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, currentIteration);
+            }
         }
         done = true;
+        iterationProgressWriter.close();
         t1.join();
-        out.close();
     }
 
-    /**
-     * @param args
-     * @throws IOException
-     */
-    public static void main(String[] args) throws IOException, InterruptedException {
-        long startTime = System.currentTimeMillis();
-        //Get the input file given as input
-        String inputFile = args[0];
-        Data.inputFileName = inputFile;
-        //First set the dimension of data which user has given input
-        int D = Integer.parseInt(args[1]);
-        numIterations = Integer.parseInt(args[2]);
-        Data.D = D;
-        //read the initial number of clusters for k-means
-        K = Integer.parseInt(args[3]);
-        //read the vocab and the cluster file
-        dirName = args[4];
-        //Read data vectors into matrix from file
-        DenseMatrix64F data = Data.readData();
-        dataVectors = new DenseMatrix64F[data.numRows]; //splitting into vectors
-        CommonOps.rowsToVector(data, dataVectors);
-        System.out.println("Total number of vectors are " + data.numRows);
-        //Read corpus
-        String inputCorpusFile = args[5];
-//        corpus = Data.readCorpus(inputCorpusFile);
-        corpus = CorpusReader.readCorpus(inputCorpusFile).documents();
-        vocabulary = readVocabulary(args[6]);
-        System.out.println("Corpus file read");
-        N = corpus.size();
-        System.out.println("Total number of documents are " + N);
-        //initialize the prior
-        prior = new NormalInverseWishart();
-        prior.mu_0 = Util.getSampleMean(dataVectors);
-        prior.nu_0 = Data.D; //initializing to the dimension
-        prior.sigma_0 = CommonOps.identity(Data.D); //setting as the identity matrix
-        CommonOps.scale(3 * Data.D, prior.sigma_0);
-        prior.k_0 = 0.1;
-        CholSigma0 = new DenseMatrix64F(Data.D, Data.D);
-        CommonOps.addEquals(CholSigma0, prior.sigma_0);
-        alpha = 1 / (double) K;
-        if (!decomposer.decompose(CholSigma0))//cholesky decomp
-        {
-            System.out.println("Matrix couldnt be Cholesky decomposed");
-            System.exit(1);
-        }
-        //Now initialize each datapoint (customer)
-        tableAssignments = new ArrayList<ArrayList<Integer>>();
-        tableCountsPerDoc = new int[K][N];
-
-        q = new VoseAlias[Data.numVectors];
-        for (int w = 0; w < Data.numVectors; w++) {
-            q[w] = new VoseAlias();
-            q[w].init(K);
-        }
-
-        Util writer = new Util(dirName, N, K);
-
-        /**************** Initialize ***********/
-        System.out.println("Starting to initialize");
-        initialize();
-        System.out.println("Gibbs sampler will run for " + numIterations + " iterations");
-        /******sample*********/
-        sample(writer);
-        long stopTime = System.currentTimeMillis();
-        double elapsedTime = (stopTime - startTime) / (double) 1000;
-        System.out.println("Time taken " + elapsedTime);
-
-        System.out.println("Printing the distributions");
-        System.out.println("Done");
-    }
 
     private static List<String> readVocabulary(String vocabularyFile) throws IOException {
         List<String> vocabulary = new ArrayList<>();
@@ -536,7 +475,70 @@ public class GaussianLDAAlias implements Runnable {
             temp.generateTable();
             q[w].copy(temp);
         }
-
     }
 
+    public static void main(String[] args) throws IOException, InterruptedException {
+        long startTime = System.currentTimeMillis();
+        //Get the input file given as input
+        String inputFile = args[0];
+        Data.inputFileName = inputFile;
+        //First set the dimension of data which user has given input
+        int D = Integer.parseInt(args[1]);
+        numIterations = Integer.parseInt(args[2]);
+        Data.D = D;
+        //read the initial number of clusters for k-means
+        K = Integer.parseInt(args[3]);
+        //read the vocab and the cluster file
+        dirName = args[4];
+        iterationProgressWriter = new FileWriter(dirName + "/iterations.txt");
+        //Read data vectors into matrix from file
+        DenseMatrix64F data = Data.readData();
+        dataVectors = new DenseMatrix64F[data.numRows]; //splitting into vectors
+        CommonOps.rowsToVector(data, dataVectors);
+        //Read corpus
+        String inputCorpusFile = args[5];
+//        corpus = Data.readCorpus(inputCorpusFile);
+        corpus = CorpusReader.readCorpus(inputCorpusFile).documents();
+        vocabulary = readVocabulary(args[6]);
+        saveStep = Integer.parseInt(args[7]);
+        alpha = Double.parseDouble(args[8]);
+        System.out.println(String.format("vector-dimensions: %d, iterations: %d, num-topics: %d, alpha: %s",
+                D, numIterations, K, alpha));
+        N = corpus.size();
+        System.out.println(String.format("num-documents: %d, num-vectors: %d", N, data.numRows));
+        //initialize the prior
+        prior = new NormalInverseWishart();
+        prior.mu_0 = Util.getSampleMean(dataVectors);
+        prior.nu_0 = Data.D; //initializing to the dimension
+        prior.sigma_0 = CommonOps.identity(Data.D); //setting as the identity matrix
+        CommonOps.scale(3 * Data.D, prior.sigma_0);
+        prior.k_0 = 0.1;
+        CholSigma0 = new DenseMatrix64F(Data.D, Data.D);
+        CommonOps.addEquals(CholSigma0, prior.sigma_0);
+        if (!decomposer.decompose(CholSigma0))//cholesky decomp
+        {
+            System.out.println("Matrix couldnt be Cholesky decomposed");
+            System.exit(1);
+        }
+        //Now initialize each datapoint (customer)
+        tableAssignments = new ArrayList<ArrayList<Integer>>();
+        tableCountsPerDoc = new int[K][N];
+
+        q = new VoseAlias[Data.numVectors];
+        for (int w = 0; w < Data.numVectors; w++) {
+            q[w] = new VoseAlias();
+            q[w].init(K);
+        }
+
+        Util writer = new Util(dirName, N, K);
+
+        /**************** Initialize ***********/
+        initialize();
+        /******sample*********/
+        sample(writer);
+        long stopTime = System.currentTimeMillis();
+        long elapsedTime = (stopTime - startTime) / 1000;
+        System.out.println("Time: " + elapsedTime + " s");
+        FileUtils.writeStringToFile(new File(dirName + "/runtime.txt"), String.valueOf(elapsedTime));
+    }
 }
