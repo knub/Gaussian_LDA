@@ -284,10 +284,6 @@ public class GaussianLDAAlias implements Runnable {
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
-        writer.printGaussians(tableMeans, tableCholeskyLTriangularMat, 0);
-        writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, 0);
-        writer.printTableAssignments(tableAssignments, 0);
-        writer.printNumCustomersPerTopic(tableCountsPerDoc, 0);
         writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, 0);
         for (int currentIteration = 1; currentIteration <= numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
