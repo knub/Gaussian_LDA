@@ -112,7 +112,7 @@ public class GaussianLDAAlias implements Runnable {
     /**
      * file path for reading vocab (to form mapping) and the initial cluster assignment
      */
-    private static String dirName;
+    private static String resultsFolder;
 
     //the dirichlet hyperparam.
     private static double alpha;
@@ -475,19 +475,22 @@ public class GaussianLDAAlias implements Runnable {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.currentTimeMillis();
-        //Get the input file given as input
-        String inputFile = args[0];
-        Data.inputFileName = inputFile;
-        //First set the dimension of data which user has given input
+
+        Data.embeddingFileName = args[0];
+
         int D = Integer.parseInt(args[1]);
-        numIterations = Integer.parseInt(args[2]);
         Data.D = D;
-        //read the initial number of clusters for k-means
+
+        numIterations = Integer.parseInt(args[2]);
+
         K = Integer.parseInt(args[3]);
-        //read the vocab and the cluster file
-        dirName = args[4];
-        iterationProgressWriter = new FileWriter(dirName + "/iterations.txt");
-        //Read data vectors into matrix from file
+
+        resultsFolder = args[4];
+        //noinspection ResultOfMethodCallIgnored
+        new File(resultsFolder).mkdirs();
+
+        iterationProgressWriter = new FileWriter(resultsFolder + "/iterations.txt");
+
         DenseMatrix64F data = Data.readData();
         dataVectors = new DenseMatrix64F[data.numRows]; //splitting into vectors
         CommonOps.rowsToVector(data, dataVectors);
@@ -526,7 +529,7 @@ public class GaussianLDAAlias implements Runnable {
             q[w].init(K);
         }
 
-        Util writer = new Util(dirName, N, K);
+        Util writer = new Util(resultsFolder, N, K);
 
         /**************** Initialize ***********/
         initialize();
@@ -535,6 +538,6 @@ public class GaussianLDAAlias implements Runnable {
         long stopTime = System.currentTimeMillis();
         long elapsedTime = (stopTime - startTime) / 1000;
         System.out.println("Time: " + elapsedTime + " s");
-        FileUtils.writeStringToFile(new File(dirName + "/runtime.txt"), String.valueOf(elapsedTime));
+        FileUtils.writeStringToFile(new File(resultsFolder + "/runtime.txt"), String.valueOf(elapsedTime));
     }
 }

@@ -15,7 +15,7 @@ import org.ejml.data.DenseMatrix64F;
  */
 public class Data {
 
-    public static String inputFileName = "";
+    public static String embeddingFileName = "";
 
     /**
      * The dimension of the vectors.
@@ -30,7 +30,7 @@ public class Data {
     public static DenseMatrix64F readData() throws IOException {
         BufferedReader reader =
                 new BufferedReader(
-                        new InputStreamReader(new FileInputStream(inputFileName), "UTF-8"));
+                        new InputStreamReader(new FileInputStream(embeddingFileName), "UTF-8"));
         String line = "";
         ArrayList<String> lines = new ArrayList<String>(); //read each line and store here and when you have all then put into the matrix
         while ((line = reader.readLine()) != null)
