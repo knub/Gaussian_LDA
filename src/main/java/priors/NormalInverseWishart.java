@@ -7,7 +7,7 @@ public class NormalInverseWishart {
     /**
      * Hyperparam mean vector.
      */
-    public DenseMatrix64F mu_0;
+    public DenseMatrix64F[] mu_0;
 
     /**
      * initial degrees of freedom

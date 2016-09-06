@@ -208,7 +208,7 @@ public class GaussianLDAAlias implements Runnable {
         //storing zeros in sumTableCustomers and later will keep on adding each customer. Also initialize tableInverseCovariances and determinants
         double scaleTdistrn = (prior.k_0 + 1) / (double) (prior.k_0 * (prior.nu_0 - Data.D + 1));
         for (int i = 0; i < K; i++) {
-            DenseMatrix64F priorMean = new DenseMatrix64F(prior.mu_0);
+            DenseMatrix64F priorMean = new DenseMatrix64F(prior.mu_0[i]);
             DenseMatrix64F initialCholesky = new DenseMatrix64F(CholSigma0);
             //calculate the 0.5*log(det) + D/2*scaleTdistrn; the scaleTdistrn is because the posterior predictive distribution sends in a scaled value of \Sigma
             double logDet = 0.0;
@@ -507,7 +507,30 @@ public class GaussianLDAAlias implements Runnable {
         System.out.println(String.format("num-documents: %d, num-vectors: %d", N, data.numRows));
         //initialize the prior
         prior = new NormalInverseWishart();
-        prior.mu_0 = Util.getSampleMean(dataVectors);
+
+        prior.mu_0 = new DenseMatrix64F[K];
+        List<String> lines = FileUtils.readLines(new File(new File(inputCorpusFile).getParent() + "/model.ssv"));
+        int k = 0;
+        for (String line : lines) {
+            if (line.contains("topic-count"))
+                continue;
+            String[] split = line.split(" ");
+            int lenSplit = split.length;
+            List<DenseMatrix64F> topicVectors = new ArrayList<>(10);
+            System.out.println(line);
+            for (int i = 0; i < 10; i += 1) {
+                String word = split[lenSplit - 1 - i];
+                System.out.print(word + " ");
+                int idx = vocabulary.indexOf(word);
+                if (idx > -1)
+                    topicVectors.add(dataVectors[idx]);
+            }
+            System.out.println();
+            prior.mu_0[k] = Util.getSampleMean(topicVectors.toArray(new DenseMatrix64F[topicVectors.size()]));
+            k += 1;
+        }
+        assert k == 50;
+
         prior.nu_0 = Data.D; //initializing to the dimension
         prior.sigma_0 = CommonOps.identity(Data.D); //setting as the identity matrix
         CommonOps.scale(3 * Data.D, prior.sigma_0);

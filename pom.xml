@@ -84,6 +84,7 @@
                                 <jvmArg>-Xms3g</jvmArg>
                                 <jvmArg>-Xmx3g</jvmArg>
                                 <jvmArg>-XX:ParallelGCThreads=8</jvmArg>
+                                <jvmArg>-enableassertions</jvmArg>
                                 <!-- <jvmArg>-XX:+PrintGC</jvmArg> -->
                             </jvmArgs>
                         </launcher>
