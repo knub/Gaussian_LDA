@@ -517,16 +517,16 @@ public class GaussianLDAAlias implements Runnable {
             String[] split = line.split(" ");
             int lenSplit = split.length;
             List<DenseMatrix64F> topicVectors = new ArrayList<>(10);
-            System.out.println(line);
+//            System.out.println(line);
             for (int i = 0; i < 10; i += 1) {
                 String word = split[lenSplit - 1 - i];
-                System.out.print(word + " ");
+//                System.out.print(word + " ");
                 int idx = vocabulary.indexOf(word);
                 if (idx > -1)
                     topicVectors.add(dataVectors[idx]);
             }
-            System.out.println();
-            prior.mu_0[k] = Util.getSampleMean(topicVectors.toArray(new DenseMatrix64F[topicVectors.size()]));
+//            System.out.println();
+            prior.mu_0[k] = Util.getSampleMean(dataVectors); //topicVectors.toArray(new DenseMatrix64F[topicVectors.size()]));
             k += 1;
         }
         assert k == 50;
