@@ -349,8 +349,13 @@ public class Util {
             double sum = 0;
             for (int k = 0; k < K; k++)
                 sum += tableCountsPerDoc[k][i];
-            for (int k = 0; k < K; k++)
-                output.write((tableCountsPerDoc[k][i] + alpha) / (double) (sum + K * alpha) + " ");
+            for (int k = 0; k < K; k++) {
+                if (k == 0) {
+                    output.write("" + (tableCountsPerDoc[k][i] + alpha) / (double) (sum + K * alpha));
+                } else {
+                    output.write(" " + (tableCountsPerDoc[k][i] + alpha) / (double) (sum + K * alpha));
+                }
+            }
             output.write("\n");
         }
         output.close();
