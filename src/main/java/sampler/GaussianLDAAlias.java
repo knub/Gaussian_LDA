@@ -284,7 +284,7 @@ public class GaussianLDAAlias implements Runnable {
         initRun();
         Thread t1 = (new Thread(new GaussianLDAAlias()));
         t1.start();
-        writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, 0);
+        writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, 0, 10);
         for (int currentIteration = 1; currentIteration <= numIterations; currentIteration++) {
             long startTime = System.currentTimeMillis();
             for (int d = 0; d < corpus.size(); d++) {
@@ -390,8 +390,9 @@ public class GaussianLDAAlias implements Runnable {
                     writer.printDocumentTopicDistribution(tableCountsPerDoc, alpha, currentIteration);
                     writer.printTableAssignments(tableAssignments, currentIteration);
                     writer.printNumCustomersPerTopic(tableCountsPerDoc, currentIteration);
+                    writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, currentIteration, 500);
                 }
-                writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, currentIteration);
+                writer.printTopWords(tableMeans, tableCholeskyLTriangularMat, dataVectors, vocabulary, currentIteration, 10);
             }
         }
         done = true;

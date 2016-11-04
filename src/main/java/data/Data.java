@@ -42,7 +42,7 @@ public class Data {
         for (int i = 0; i < lines.size(); i++) {
             String vector = lines.get(i);
             String[] vals = vector.split(" ");
-            assert vals.length == D;
+            assert vals.length == D : "Split size length " + vals.length + " should be equal to D=" + D;
             int j = 0;
             for (String val : vals) {
                 double dVal = Double.parseDouble(val);

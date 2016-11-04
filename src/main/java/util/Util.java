@@ -246,9 +246,9 @@ public class Util {
 
 
     public void printTopWords(ArrayList<DenseMatrix64F> tableMeans, ArrayList<DenseMatrix64F> tableCholeskyLTriangularMat,
-                              DenseMatrix64F[] dataVectors, List<String> vocabulary, int currentIteration) throws IOException {
+                              DenseMatrix64F[] dataVectors, List<String> vocabulary, int currentIteration, int topWords) throws IOException {
         BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(String.format("%s%03d.topics", dirName, currentIteration), true), "UTF-8"));
+                new FileOutputStream(String.format("%s%03d.%d.topics", dirName, currentIteration, topWords), true), "UTF-8"));
         for (int k = 0; k < K; k++) {
             DenseMatrix64F means = tableMeans.get(k);
 
@@ -277,14 +277,13 @@ public class Util {
                 queue.add(wordProb);
             }
 
-            int TOP_WORDS = 10;
             queue.sort(new WordProbComparator());
             double minProb = queue.stream().mapToDouble(o -> o.prob).min().getAsDouble();
             double maxProb = queue.stream().mapToDouble(o -> o.prob).max().getAsDouble();
             assert queue.get(0).prob == minProb;
             assert queue.get(queue.size() - 1).prob == maxProb;
 //            System.out.println(String.format("Topic %d with minProb %f and maxProb %f", k, minProb, maxProb));
-            for (int m = 0; m < TOP_WORDS; m += 1) {
+            for (int m = 0; m < topWords; m += 1) {
                 WordProb wordProb = queue.get(queue.size() - 1 - m);
                 String word = vocabulary.get(wordProb.wordId);
 //                System.out.println(word + " " + wordProb.prob);
