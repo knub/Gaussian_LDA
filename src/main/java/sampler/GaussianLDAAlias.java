@@ -530,7 +530,7 @@ public class GaussianLDAAlias implements Runnable {
             prior.mu_0[k] = Util.getSampleMean(dataVectors); //topicVectors.toArray(new DenseMatrix64F[topicVectors.size()]));
             k += 1;
         }
-        assert k == 50;
+        assert k == 50 || k == 250;
 
         prior.nu_0 = Data.D; //initializing to the dimension
         prior.sigma_0 = CommonOps.identity(Data.D); //setting as the identity matrix
