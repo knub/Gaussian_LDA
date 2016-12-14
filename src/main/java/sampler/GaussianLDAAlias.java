@@ -1,10 +1,7 @@
 package sampler;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
@@ -381,7 +378,7 @@ public class GaussianLDAAlias implements Runnable {
             //calculate perplexity
             double avgLL = Util.calculateAvgLL(corpus, tableAssignments, dataVectors, tableMeans, tableCholeskyLTriangularMat, K, N, prior, tableCountsPerDoc);
             String iterationOutput = String.format("%d\t%.4f\t%d%n", currentIteration, avgLL, elapsedTime);
-            System.out.println(iterationOutput);
+            System.out.println(iterationOutput + " " + new Date());
             iterationProgressWriter.write(iterationOutput);
 
             if (currentIteration == numIterations || currentIteration % saveStep == 0) {
